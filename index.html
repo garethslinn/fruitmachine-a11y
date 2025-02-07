@@ -24,7 +24,6 @@
             height: auto;
             max-height: 80vh;
             background: white;
-            border: 4px solid red;
             image-rendering: crisp-edges;
         }
 
@@ -77,11 +76,27 @@
             from { opacity: 1; }
             to { opacity: 0.5; }
         }
+
+        #canvasOverlay {
+            position: absolute;
+            top: 48%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%; /* Match the canvas size */
+            height: auto;
+            pointer-events: none; /* ✅ Allows clicking through the overlay */
+        }
+        .wrapper {
+            position: relative;
+        }
     </style>
 </head>
 <body>
 
-<canvas id="slotCanvas" width="500" height="300"></canvas>
+<span class="wrapper">
+    <img src="overlay.svg" id="canvasOverlay">
+    <canvas id="slotCanvas" width="500" height="300"></canvas>
+</span>
 
 <!-- ✅ Start, Win Spin & Cancel buttons -->
 <div class="button-row">
