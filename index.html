@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Canvas Slot Machine</title>
     <style>
-        /* ✅ General Page Styling */
         body {
             text-align: center;
             background-color: #222;
@@ -16,37 +15,19 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh; /* Full viewport height */
-            overflow: hidden; /* Prevents accidental scrolling */
+            height: 100vh;
+            overflow: hidden;
         }
 
-        /* ✅ Slot Machine Container */
-        .slot-container {
-            width: 100%;
-            max-width: 600px; /* Prevents excessive stretching */
-            aspect-ratio: 5 / 3; /* ✅ Maintains perfect aspect ratio */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* ✅ Fully Responsive Canvas */
         canvas {
-            width: 100%; /* ✅ Full width */
-            height: auto; /* ✅ Maintain aspect ratio */
-            max-height: 80vh; /* ✅ Prevents it from being too large */
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
             background: white;
             border: 4px solid red;
-        }
-
-        /* ✅ Preserve SVG Quality */
-        canvas {
             image-rendering: crisp-edges;
-            image-rendering: -moz-crisp-edges;
-            image-rendering: -webkit-optimize-contrast;
         }
 
-        /* ✅ Controls Section */
         .controls {
             width: 100%;
             display: flex;
@@ -56,12 +37,11 @@
             margin-top: 10px;
         }
 
-        /* ✅ Make Buttons Scale */
         button {
-            flex: 1; /* ✅ Makes buttons expand evenly */
-            max-width: 150px; /* ✅ Prevents them from getting too wide */
+            flex: 1;
+            max-width: 150px;
             padding: 12px 16px;
-            font-size: 1.2rem; /* ✅ Scales text */
+            font-size: 1.2rem;
             border: none;
             background-color: #ff4d4d;
             color: white;
@@ -73,21 +53,7 @@
         button:hover {
             background-color: #cc0000;
         }
-
-        /* ✅ Make It Look Good on Mobile */
-        @media (max-width: 600px) {
-            button {
-                font-size: 1rem; /* ✅ Slightly smaller font for mobile */
-                padding: 10px;
-            }
-            .controls {
-                flex-direction: column; /* ✅ Stack buttons on small screens */
-                gap: 5px;
-            }
-        }
     </style>
-
-
 </head>
 <body>
 
@@ -105,70 +71,43 @@
     const reelHeight = 80;
     const reelWidth = 100;
     const imageGap = 10;
+    const winLineY = 90; // ✅ This is the win line
 
-    // ✅ Set individual spin durations for each reel (e.g., 600ms → 1200ms → 1800ms → 2400ms)
+    // ✅ Spin durations for each reel
     const spinDurations = [600, 1200, 1800, 2400];
 
-    // ✅ Updated image paths
+    // ✅ Image paths
     const imagePaths = [
         "01.svg", "02.svg", "03.svg", "04.svg",
         "05.svg", "06.svg", "07.svg", "08.svg"
     ];
 
     function playReelSound() {
-        let audio = new Audio("reel.mp3"); // Load the audio file
-        audio.play(); // Play the sound
+        let audio = new Audio("reel.mp3");
+        audio.play();
     }
 
     function playWinSound() {
-        let audio = new Audio("win.mp3"); // Load the audio file
-        audio.play(); // Play the sound
+        let audio = new Audio("win.mp3");
+        audio.play();
     }
 
-    const images = [];
-    let loadedImages = 0;
-
     // ✅ Load images
+    const images = [];
     imagePaths.forEach((src, index) => {
         images[index] = new Image();
         images[index].src = src;
-        images[index].onload = () => { loadedImages++; };
     });
 
-    // ✅ Function to shuffle images while ensuring no consecutive duplicates
-    function shuffleImages(imageArray) {
-        let shuffled;
-        do {
-            shuffled = [...imageArray];
-
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-        } while (hasConsecutiveDuplicates(shuffled));
-
-        return shuffled;
-    }
-
-    // ✅ Helper function to check for consecutive duplicates
-    function hasConsecutiveDuplicates(arr) {
-        for (let i = 0; i < arr.length - 1; i++) {
-            if (arr[i] === arr[i + 1]) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // ✅ Generate unique shuffled sequences for each reel
-    let reelSequences = Array.from({ length: reelCount }, () => shuffleImages(imagePaths));
+    // ✅ Keep reels in a fixed order (no shuffle)
+    let reelSequences = Array.from({ length: reelCount }, () => [...imagePaths]);
 
     // ✅ Reel Data
     let reels = Array.from({ length: reelCount }, (_, i) => ({
         position: Math.floor(Math.random() * reelImages) * (reelHeight + imageGap),
-        speed: Math.random() * 40 + 20, // Each reel starts at a different speed
+        speed: Math.random() * 40 + 20,
         spinning: false,
-        stopAt: 0 // Stores when the reel should stop
+        stopAt: 0
     }));
 
     let spinning = false;
@@ -176,42 +115,42 @@
     // ✅ Draw Reels
     function drawReels() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         for (let i = 0; i < reelCount; i++) {
             let x = i * (reelWidth + 28) + 10;
-
             for (let j = 0; j < reelImages + 2; j++) {
-                let imgName = reelSequences[i][(Math.floor(reels[i].position / (reelHeight + imageGap)) + j) % reelImages];
-
-                // ✅ Find the correct image index in `imagePaths[]`
-                let imgIndex = imagePaths.indexOf(imgName);
+                let imgIndex = (Math.floor(reels[i].position / (reelHeight + imageGap)) + j) % reelImages;
+                let imgName = reelSequences[i][imgIndex];
                 let y = (j * (reelHeight + imageGap)) - (reels[i].position % (reelHeight + imageGap)) - (reelHeight + imageGap);
-
-                if (imgIndex !== -1 && images[imgIndex].complete) {
-                    ctx.drawImage(images[imgIndex], x, y, reelWidth, reelHeight);
+                if (images[imagePaths.indexOf(imgName)]) {
+                    ctx.drawImage(images[imagePaths.indexOf(imgName)], x, y, reelWidth, reelHeight);
                 }
             }
-
-            // ✅ Highlight the main result area
             ctx.strokeStyle = "red";
             ctx.lineWidth = 3;
-            ctx.strokeRect(x, 90, reelWidth, reelHeight);
+            ctx.strokeRect(x, winLineY, reelWidth, reelHeight);
         }
     }
 
+    // ✅ Extract & Log Winning Symbols at the Win Line
+    function getWinningSymbols() {
+        let winningSymbols = reels.map((reel, i) => {
+            let offset = Math.round(reel.position / (reelHeight + imageGap)); // ✅ Get the closest position
+            let winningIndex = (offset + 2) % reelImages; // ✅ Ensure correct alignment
+            let winningSymbol = reelSequences[i][winningIndex]; // ✅ Correct image
+            return winningSymbol;
+        });
+        console.log("🎉 Winning Symbols on the Win Line:", winningSymbols);
+    }
 
-    // ✅ Spin Reels with Controlled Durations
+    // ✅ Spin Reels
     function spinReels() {
         spinning = true;
         const startTime = Date.now();
 
-        // ✅ Re-shuffle the reels before each spin
-        reelSequences = Array.from({ length: reelCount }, () => shuffleImages(imagePaths));
-
         reels.forEach((reel, index) => {
             reel.spinning = true;
-            reel.speed = Math.random() * 50 + 50; // ✅ Faster starting speeds
-            reel.stopAt = startTime + spinDurations[index]; // ✅ Set stop time based on duration
+            reel.speed = Math.random() * 50 + 50;
+            reel.stopAt = startTime + spinDurations[index];
         });
 
         function animate() {
@@ -222,44 +161,33 @@
                 if (reel.spinning) {
                     stillSpinning = true;
                     let timeRemaining = reel.stopAt - currentTime;
-                    let totalSpinTime = spinDurations[reels.indexOf(reel)]; // ✅ Full spin duration
+                    let totalSpinTime = spinDurations[reels.indexOf(reel)];
 
-                    // ✅ Apply a more noticeable slow-down effect in the last 10%
-                    if (timeRemaining < totalSpinTime * 0.1) {
-                        reel.speed *= 0.80; // **Stronger slow down in the last 10%**
-                    } else {
-                        reel.speed *= 0.99; // **Normal gradual slow down**
-                    }
+                    if (timeRemaining < totalSpinTime * 0.1) reel.speed *= 0.80;
+                    else reel.speed *= 0.99;
 
-                    reel.position -= reel.speed; // 🔄 **Move Up instead of Down**
-
-                    // ✅ Stop each reel independently based on its set duration
+                    reel.position -= reel.speed;
                     if (currentTime >= reel.stopAt) {
                         reel.spinning = false;
                         reel.speed = 0;
                         reel.position = Math.round(reel.position / (reelHeight + imageGap)) * (reelHeight + imageGap);
                     }
-
-                    // ✅ Ensure seamless looping of images (when moving up)
-                    if (reel.position < 0) {
-                        reel.position = (reelImages - 1) * (reelHeight + imageGap);
-                    }
+                    if (reel.position < 0) reel.position = (reelImages - 1) * (reelHeight + imageGap);
                 }
             });
 
             drawReels();
 
-            if (stillSpinning) {
-                requestAnimationFrame(animate);
-            } else {
+            if (stillSpinning) requestAnimationFrame(animate);
+            else {
                 spinning = false;
+                getWinningSymbols(); // ✅ Logs the correct images at the win line
             }
         }
 
         animate();
     }
 
-    // ✅ Start Button
     document.getElementById("startButton").addEventListener("click", () => {
         if (!spinning) {
             playReelSound();
@@ -267,10 +195,7 @@
         }
     });
 
-    // ✅ Initial Render
-    setTimeout(drawReels, 100); // ✅ Wait for images to load
-
+    setTimeout(drawReels, 100);
 </script>
-
 </body>
 </html>
