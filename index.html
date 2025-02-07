@@ -127,8 +127,8 @@
     const spinDurations = [600, 1200, 1800, 2400];
 
     const imagePaths = [
-        "01.svg", "04.svg", "10.svg", "02.svg",
-        "09.svg", "03.svg", "05.svg", "06.svg",
+        "01.svg", "02.svg", "03.svg", "04.svg", "10.svg",
+        "09.svg", "05.svg", "06.svg",
         "07.svg", "08.svg",
     ];
 
@@ -217,9 +217,10 @@
                     ctx.drawImage(images[imagePaths.indexOf(imgName)], x, y, reelWidth, reelHeight);
                 }
             }
-            ctx.strokeStyle = "red";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(x, winLineY, reelWidth, reelHeight);
+            // squares above win line
+            // ctx.strokeStyle = "red";
+            // ctx.lineWidth = 3;
+            // ctx.strokeRect(x, winLineY, reelWidth, reelHeight);
         }
     }
 
@@ -231,6 +232,10 @@
         });
         console.log("🎉 Winning Symbols on the Win Line:", winningSymbols);
     }
+    function getRandomNumber(numbers) {
+        return numbers[Math.floor(Math.random() * numbers.length)];
+    }
+
 
     function spinReels(forceWin = false) {
         spinning = true;
@@ -242,7 +247,8 @@
 
         // Determine the winning symbol before any reels spin
         if (forceWin) {
-            winIndex = Math.floor(Math.random() * reelImages);
+            // these numbers represent the different images.
+            winIndex = getRandomNumber([1, 1, 8, 8, 9, 10])
             winSymbol = reelSequences[0][winIndex]; // Pick the symbol from reel 1
         }
 
