@@ -117,6 +117,16 @@
         "07.svg", "08.svg",
     ];
 
+    function adjustCanvasResolution() {
+        const scale = window.devicePixelRatio || 1; // ✅ Get screen pixel ratio
+        canvas.width = 500 * scale;
+        canvas.height = 300 * scale;
+        ctx.scale(scale, scale); // ✅ Scale drawing context to match
+    }
+
+    adjustCanvasResolution(); // ✅ Call when initializing
+
+
     function playReelSound() {
         let audio = new Audio("reel.mp3");
         audio.play();
