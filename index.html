@@ -37,6 +37,13 @@
             margin-top: 10px;
         }
 
+        .button-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
         button {
             flex: 1;
             max-width: 150px;
@@ -53,13 +60,43 @@
         button:hover {
             background-color: #cc0000;
         }
+
+        /* ✅ Flashing hold button */
+        .hold-flash {
+            animation: flash 0.5s infinite alternate;
+            background-color: yellow !important;
+            color: black;
+        }
+
+        /* ✅ Active hold button */
+        .hold-active {
+            background-color: green !important;
+            color: white;
+            animation: none;
+        }
+
+        @keyframes flash {
+            from { opacity: 1; }
+            to { opacity: 0.5; }
+        }
     </style>
 </head>
 <body>
 
 <canvas id="slotCanvas" width="500" height="300"></canvas>
-<div class="controls">
+
+<!-- ✅ Start & Cancel buttons -->
+<div class="button-row">
     <button id="startButton">Start</button>
+    <button id="cancelButton">Cancel</button>
+</div>
+
+<!-- ✅ Hold buttons -->
+<div class="controls">
+    <button id="hold1" disabled>Hold</button>
+    <button id="hold2" disabled>Hold</button>
+    <button id="hold3" disabled>Hold</button>
+    <button id="hold4" disabled>Hold</button>
 </div>
 
 <script>
@@ -67,19 +104,18 @@
     const ctx = canvas.getContext("2d");
 
     const reelCount = 4;
-    const reelImages = 8;
+    const reelImages = 10;
     const reelHeight = 80;
     const reelWidth = 100;
     const imageGap = 10;
-    const winLineY = 90; // ✅ This is the win line
+    const winLineY = 90;
 
-    // ✅ Spin durations for each reel
     const spinDurations = [600, 1200, 1800, 2400];
 
-    // ✅ Image paths
     const imagePaths = [
-        "01.svg", "02.svg", "03.svg", "04.svg",
-        "05.svg", "06.svg", "07.svg", "08.svg"
+        "01.svg", "04.svg", "10.svg", "02.svg",
+        "09.svg", "03.svg", "05.svg", "06.svg",
+        "07.svg", "08.svg",
     ];
 
     function playReelSound() {
@@ -92,17 +128,14 @@
         audio.play();
     }
 
-    // ✅ Load images
     const images = [];
     imagePaths.forEach((src, index) => {
         images[index] = new Image();
         images[index].src = src;
     });
 
-    // ✅ Keep reels in a fixed order (no shuffle)
     let reelSequences = Array.from({ length: reelCount }, () => [...imagePaths]);
 
-    // ✅ Reel Data
     let reels = Array.from({ length: reelCount }, (_, i) => ({
         position: Math.floor(Math.random() * reelImages) * (reelHeight + imageGap),
         speed: Math.random() * 40 + 20,
@@ -111,8 +144,17 @@
     }));
 
     let spinning = false;
+    let holdStatus = [false, false, false, false];
 
-    // ✅ Draw Reels
+    const startButton = document.getElementById("startButton");
+    const cancelButton = document.getElementById("cancelButton");
+    const holdButtons = [
+        document.getElementById("hold1"),
+        document.getElementById("hold2"),
+        document.getElementById("hold3"),
+        document.getElementById("hold4")
+    ];
+
     function drawReels() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (let i = 0; i < reelCount; i++) {
@@ -131,37 +173,39 @@
         }
     }
 
-    // ✅ Extract & Log Winning Symbols at the Win Line
     function getWinningSymbols() {
         let winningSymbols = reels.map((reel, i) => {
-            let offset = Math.round(reel.position / (reelHeight + imageGap)); // ✅ Get the closest position
-            let winningIndex = (offset + 2) % reelImages; // ✅ Ensure correct alignment
-            let winningSymbol = reelSequences[i][winningIndex]; // ✅ Correct image
-            return winningSymbol;
+            let offset = Math.round(reel.position / (reelHeight + imageGap));
+            let winningIndex = (offset + 2) % reelImages;
+            return reelSequences[i][winningIndex];
         });
         console.log("🎉 Winning Symbols on the Win Line:", winningSymbols);
     }
 
-    // ✅ Spin Reels
     function spinReels() {
         spinning = true;
         const startTime = Date.now();
 
+        // ✅ Stop flashing when spin starts
+        holdButtons.forEach(button => button.classList.remove("hold-flash"));
+
         reels.forEach((reel, index) => {
-            reel.spinning = true;
-            reel.speed = Math.random() * 50 + 50;
-            reel.stopAt = startTime + spinDurations[index];
+            if (!holdStatus[index]) {
+                reel.spinning = true;
+                reel.speed = Math.random() * 50 + 50;
+                reel.stopAt = startTime + spinDurations[index];
+            }
         });
 
         function animate() {
             let stillSpinning = false;
             const currentTime = Date.now();
 
-            reels.forEach((reel) => {
+            reels.forEach((reel, index) => {
                 if (reel.spinning) {
                     stillSpinning = true;
                     let timeRemaining = reel.stopAt - currentTime;
-                    let totalSpinTime = spinDurations[reels.indexOf(reel)];
+                    let totalSpinTime = spinDurations[index];
 
                     if (timeRemaining < totalSpinTime * 0.1) reel.speed *= 0.80;
                     else reel.speed *= 0.99;
@@ -181,19 +225,46 @@
             if (stillSpinning) requestAnimationFrame(animate);
             else {
                 spinning = false;
-                getWinningSymbols(); // ✅ Logs the correct images at the win line
+                getWinningSymbols();
+                resetHoldButtons();
             }
         }
 
         animate();
     }
 
-    document.getElementById("startButton").addEventListener("click", () => {
+    function resetHoldButtons() {
+        holdStatus.fill(false);
+        holdButtons.forEach(button => {
+            button.disabled = true;
+            button.classList.remove("hold-active", "hold-flash");
+        });
+
+        if (Math.random() < 1 / 3) {
+            holdButtons.forEach(button => {
+                button.disabled = false;
+                button.classList.add("hold-flash");
+            });
+        }
+    }
+
+    holdButtons.forEach((button, index) => {
+        button.addEventListener("click", () => {
+            holdStatus[index] = true;
+            button.disabled = true;
+            button.classList.remove("hold-flash");
+            button.classList.add("hold-active");
+        });
+    });
+
+    startButton.addEventListener("click", () => {
         if (!spinning) {
             playReelSound();
             spinReels();
         }
     });
+
+    cancelButton.addEventListener("click", resetHoldButtons);
 
     setTimeout(drawReels, 100);
 </script>
