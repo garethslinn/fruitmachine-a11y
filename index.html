@@ -61,14 +61,12 @@
             background-color: #cc0000;
         }
 
-        /* ✅ Flashing hold button */
         .hold-flash {
             animation: flash 0.5s infinite alternate;
             background-color: yellow !important;
             color: black;
         }
 
-        /* ✅ Active hold button */
         .hold-active {
             background-color: green !important;
             color: white;
@@ -85,9 +83,10 @@
 
 <canvas id="slotCanvas" width="500" height="300"></canvas>
 
-<!-- ✅ Start & Cancel buttons -->
+<!-- ✅ Start, Win Spin & Cancel buttons -->
 <div class="button-row">
     <button id="startButton">Start</button>
+    <button id="winSpinButton">Win Spin</button>
     <button id="cancelButton">Cancel</button>
 </div>
 
@@ -147,6 +146,7 @@
     let holdStatus = [false, false, false, false];
 
     const startButton = document.getElementById("startButton");
+    const winSpinButton = document.getElementById("winSpinButton");
     const cancelButton = document.getElementById("cancelButton");
     const holdButtons = [
         document.getElementById("hold1"),
@@ -154,6 +154,31 @@
         document.getElementById("hold3"),
         document.getElementById("hold4")
     ];
+
+    function resetHoldButtons() {
+        holdStatus.fill(false);
+        holdButtons.forEach((button, index) => {
+            button.disabled = true;
+            button.classList.remove("hold-active", "hold-flash");
+        });
+
+        // **1 in 3 chance for holds to flash**
+        if (Math.random() < 1 / 3) {
+            holdButtons.forEach((button, index) => {
+                button.disabled = false;
+                button.classList.add("hold-flash");
+
+                // ✅ Ensure clicking the button will "hold" the reel
+                button.onclick = () => {
+                    holdStatus[index] = true;
+                    button.disabled = true;
+                    button.classList.remove("hold-flash");
+                    button.classList.add("hold-active");
+                };
+            });
+        }
+    }
+
 
     function drawReels() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -182,18 +207,30 @@
         console.log("🎉 Winning Symbols on the Win Line:", winningSymbols);
     }
 
-    function spinReels() {
+    function spinReels(forceWin = false) {
         spinning = true;
         const startTime = Date.now();
-
-        // ✅ Stop flashing when spin starts
         holdButtons.forEach(button => button.classList.remove("hold-flash"));
+
+        let winSymbol = null;
+        let winIndex = null;
+
+        // Determine the winning symbol before any reels spin
+        if (forceWin) {
+            winIndex = Math.floor(Math.random() * reelImages);
+            winSymbol = reelSequences[0][winIndex]; // Pick the symbol from reel 1
+        }
 
         reels.forEach((reel, index) => {
             if (!holdStatus[index]) {
                 reel.spinning = true;
                 reel.speed = Math.random() * 50 + 50;
                 reel.stopAt = startTime + spinDurations[index];
+
+                if (forceWin && index < 3) {
+                    // Force reels 1, 2, and 3 to stop on the winning symbol
+                    reel.position = winIndex * (reelHeight + imageGap);
+                }
             }
         });
 
@@ -215,6 +252,11 @@
                         reel.spinning = false;
                         reel.speed = 0;
                         reel.position = Math.round(reel.position / (reelHeight + imageGap)) * (reelHeight + imageGap);
+
+                        // Ensure reels 1, 2, and 3 stop on the forced win symbol
+                        if (forceWin && index < 3) {
+                            reel.position = winIndex * (reelHeight + imageGap);
+                        }
                     }
                     if (reel.position < 0) reel.position = (reelImages - 1) * (reelHeight + imageGap);
                 }
@@ -233,29 +275,7 @@
         animate();
     }
 
-    function resetHoldButtons() {
-        holdStatus.fill(false);
-        holdButtons.forEach(button => {
-            button.disabled = true;
-            button.classList.remove("hold-active", "hold-flash");
-        });
 
-        if (Math.random() < 1 / 3) {
-            holdButtons.forEach(button => {
-                button.disabled = false;
-                button.classList.add("hold-flash");
-            });
-        }
-    }
-
-    holdButtons.forEach((button, index) => {
-        button.addEventListener("click", () => {
-            holdStatus[index] = true;
-            button.disabled = true;
-            button.classList.remove("hold-flash");
-            button.classList.add("hold-active");
-        });
-    });
 
     startButton.addEventListener("click", () => {
         if (!spinning) {
@@ -264,9 +284,16 @@
         }
     });
 
+    winSpinButton.addEventListener("click", () => {
+        if (!spinning) {
+            // playWinSound();
+            spinReels(true);
+        }
+    });
+
     cancelButton.addEventListener("click", resetHoldButtons);
 
-    setTimeout(drawReels, 100);
+    setTimeout(drawReels, 200);
 </script>
 </body>
 </html>
