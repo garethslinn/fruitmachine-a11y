@@ -127,11 +127,29 @@
     const spinDurations = [600, 1200, 1800, 2400];
 
     const imagePaths = [
-        "01.svg", "02.svg", "03.svg", "04.svg", "10.svg",
-        "09.svg", "05.svg", "06.svg",
-        "07.svg", "08.svg",
+        "src/images/01.svg", "src/images/02.svg", "src/images/03.svg", "src/images/04.svg", "src/images/10.svg",
+        "src/images/09.svg", "src/images/05.svg", "src/images/06.svg", "src/images/07.svg", "src/images/08.svg"
     ];
 
+    let images = [];
+    let imagesLoaded = 0;
+
+    imagePaths.forEach((src, index) => {
+        images[index] = new Image();
+        images[index].src = src;
+
+        images[index].onload = () => {
+            imagesLoaded++;
+            if (imagesLoaded === imagePaths.length) {
+                console.log("All images loaded successfully.");
+                drawReels();  // Draw the reels only after all images are loaded
+            }
+        };
+
+        images[index].onerror = () => {
+            console.error(`Failed to load image: ${src}`);
+        };
+    });
     function adjustCanvasResolution() {
         const scale = window.devicePixelRatio || 1; // ✅ Get screen pixel ratio
         canvas.width = 500 * scale;
@@ -152,11 +170,7 @@
         audio.play();
     }
 
-    const images = [];
-    imagePaths.forEach((src, index) => {
-        images[index] = new Image();
-        images[index].src = src;
-    });
+
 
     let reelSequences = Array.from({ length: reelCount }, () => [...imagePaths]);
 
