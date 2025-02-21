@@ -103,6 +103,7 @@
     <button id="startButton">Start</button>
     <button id="winSpinButton">Win Spin</button>
     <button id="cancelButton">Cancel</button>
+    <button id="soundToggle">Sound: On</button>
 </div>
 
 <!-- ✅ Hold buttons -->
@@ -159,19 +160,6 @@
 
     adjustCanvasResolution(); // ✅ Call when initializing
 
-
-    function playReelSound() {
-        let audio = new Audio("reel.mp3");
-        audio.play();
-    }
-
-    function playWinSound() {
-        let audio = new Audio("win.mp3");
-        audio.play();
-    }
-
-
-
     let reelSequences = Array.from({ length: reelCount }, () => [...imagePaths]);
 
     let reels = Array.from({ length: reelCount }, (_, i) => ({
@@ -193,6 +181,29 @@
         document.getElementById("hold3"),
         document.getElementById("hold4")
     ];
+
+    // Global variable to track sound state
+    let soundEnabled = true;
+
+    // Toggle the sound on/off and update button text
+    const soundToggleButton = document.getElementById("soundToggle");
+    soundToggleButton.addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        soundToggleButton.textContent = soundEnabled ? "Sound: On" : "Sound: Off";
+    });
+
+    // Update sound functions to check soundEnabled before playing sound
+    function playReelSound() {
+        if (!soundEnabled) return; // Do nothing if sound is off
+        let audio = new Audio("reel.mp3");
+        audio.play();
+    }
+
+    function playWinSound() {
+        if (!soundEnabled) return;
+        let audio = new Audio("win.mp3");
+        audio.play();
+    }
 
     function resetHoldButtons() {
         holdStatus.fill(false);
