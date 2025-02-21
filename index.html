@@ -3,96 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./src/styles/main.css">
     <title>Canvas Slot Machine</title>
-    <style>
-        body {
-            text-align: center;
-            background-color: #333;
-            color: white;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        canvas {
-            width: 100%;
-            height: auto;
-            max-height: 80vh;
-            background: white;
-            image-rendering: crisp-edges;
-        }
-
-        .controls {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .button-row {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        button {
-            flex: 1;
-            max-width: 150px;
-            padding: 12px 16px;
-            font-size: 1.2rem;
-            border: none;
-            background-color: #ff4d4d;
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #cc0000;
-        }
-
-        .hold-flash {
-            animation: flash 0.5s infinite alternate;
-            background-color: yellow !important;
-            color: black;
-        }
-
-        .hold-active {
-            background-color: green !important;
-            color: white;
-            animation: none;
-        }
-
-        @keyframes flash {
-            from { opacity: 1; }
-            to { opacity: 0.5; }
-        }
-
-        #canvasOverlay {
-            position: absolute;
-            top: 48%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100%; /* Match the canvas size */
-            height: auto;
-            pointer-events: none; /* ✅ Allows clicking through the overlay */
-        }
-        .wrapper {
-            position: relative;
-        }
-    </style>
 </head>
 <body>
-
+<div id="creditDisplay" style="margin-bottom: 1rem; font-size: 1.5rem; height: 2rem">
+    Credits: <span id="creditCount">100</span>
+</div>
 <span class="wrapper">
     <img src="overlay.svg" id="canvasOverlay">
     <canvas id="slotCanvas" width="500" height="300"></canvas>
@@ -119,7 +36,7 @@
     const ctx = canvas.getContext("2d");
 
     const reelCount = 4;
-    const reelImages = 10;
+    const reelImages = 7;
     const reelHeight = 80;
     const reelWidth = 100;
     const imageGap = 10;
@@ -127,10 +44,58 @@
 
     const spinDurations = [600, 1200, 1800, 2400];
 
+    // const imagePaths = [
+    //     "src/images/01.svg", "src/images/02.svg", "src/images/03.svg", "src/images/04.svg", "src/images/10.svg",
+    //     "src/images/09.svg", "src/images/05.svg", "src/images/06.svg", "src/images/07.svg", "src/images/08.svg"
+    // ];
+
     const imagePaths = [
-        "src/images/01.svg", "src/images/02.svg", "src/images/03.svg", "src/images/04.svg", "src/images/10.svg",
-        "src/images/09.svg", "src/images/05.svg", "src/images/06.svg", "src/images/07.svg", "src/images/08.svg"
+        "src/images/01.svg", "src/images/02.svg", "src/images/04.svg", "src/images/10.svg",
+        "src/images/09.svg", "src/images/05.svg", "src/images/08.svg"
     ];
+
+    const fruitmachinePayouts = {
+        cherry: {
+            reel1: 2,
+            reel2: 4,
+            reel3: 6,
+            reel4: 10,
+        },
+        lemon: {
+            // No payout for reel1 and reel2; payout for reel3 and reel4
+            reel3: 8,
+            reel4: 30,
+        },
+        plum: {
+            reel3: 8,
+            reel4: 50,
+        },
+        melon: {
+            reel3: 10,
+            reel4: 100,
+        },
+        single: {
+            reel3: 13,
+            reel4: 250,
+        },
+        double: {
+            reel3: 16,
+            reel4: 500,
+        },
+        tripple: {
+            reel3: 20,
+            reel4: 1000,
+        }
+    };
+
+    function getPayout(symbol, reelCount) {
+        const payoutData = fruitmachinePayouts[symbol];
+        return payoutData ? payoutData[`reel${reelCount}`] || 0 : 0;
+    }
+
+    console.log(getPayout("cherry", 4)); // 10
+    console.log(getPayout("lemon", 3));  // 8
+
 
     let images = [];
     let imagesLoaded = 0;
@@ -181,6 +146,17 @@
         document.getElementById("hold3"),
         document.getElementById("hold4")
     ];
+
+
+
+    // Initialize credits from localStorage or set to 100 if not available
+    let credits = parseInt(localStorage.getItem('credits')) || 100;
+    const creditCountElement = document.getElementById("creditCount");
+
+    function updateCreditDisplay() {
+        creditCountElement.textContent = credits;
+    }
+    updateCreditDisplay();
 
     // Global variable to track sound state
     let soundEnabled = true;
@@ -273,7 +249,7 @@
         // Determine the winning symbol before any reels spin
         if (forceWin) {
             // these numbers represent the different images.
-            winIndex = getRandomNumber([1, 1, 8, 8, 9, 10])
+            winIndex = getRandomNumber([5,6,7])
             winSymbol = reelSequences[0][winIndex]; // Pick the symbol from reel 1
         }
 
@@ -335,8 +311,23 @@
 
     startButton.addEventListener("click", () => {
         if (!spinning) {
-            playReelSound();
-            spinReels();
+            // Check if the player has enough credits
+            if (credits > 0) {
+                // Deduct one credit
+                credits--;
+                localStorage.setItem('credits', credits);
+                updateCreditDisplay();
+
+                // Optionally disable the start button if credits run out
+                if (credits === 0) {
+                    startButton.disabled = true;
+                }
+
+                playReelSound();
+                spinReels();
+            } else {
+                alert("No more credits!");
+            }
         }
     });
 
