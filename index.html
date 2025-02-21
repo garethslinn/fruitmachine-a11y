@@ -39,15 +39,6 @@
     const canvas = document.getElementById("slotCanvas");
     const ctx = canvas.getContext("2d");
 
-    const reelCount = 4;
-    const reelImages = 7;
-    const reelHeight = 80;
-    const reelWidth = 100;
-    const imageGap = 10;
-    const winLineY = 90;
-
-    const spinDurations = [600, 1200, 1800, 2400];
-
     // Images for the reels
     const imagePaths = [
         "src/images/01.svg",
@@ -58,6 +49,17 @@
         "src/images/05.svg",
         "src/images/08.svg"
     ];
+
+    const reelCount = 4;
+    const reelImages = imagePaths.length;
+    const reelHeight = 80;
+    const reelWidth = 100;
+    const imageGap = 10;
+    const winLineY = 90;
+
+    const spinDurations = [600, 1200, 1800, 2400];
+
+
 
     // Payout table (values in pounds)
     const fruitmachinePayouts = {
