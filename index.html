@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./src/styles/main.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./src/styles/main.css" />
     <title>Canvas Slot Machine</title>
 </head>
 <body>
 <div id="creditDisplay" style="margin-bottom: 1rem; font-size: 1.5rem; height: 2rem">
     Credits: <span id="creditCount">100</span>
 </div>
+<!-- New win notice element -->
+<div id="winNotice" style="font-size: 1.5rem; margin-bottom: 1rem;"></div>
+
 <span class="wrapper">
-    <img src="overlay.svg" id="canvasOverlay">
+    <img src="overlay.svg" id="canvasOverlay" />
     <canvas id="slotCanvas" width="500" height="300"></canvas>
-</span>
+  </span>
 
 <!-- ✅ Start, Win Spin & Cancel buttons -->
 <div class="button-row">
@@ -44,16 +47,18 @@
 
     const spinDurations = [600, 1200, 1800, 2400];
 
-    // const imagePaths = [
-    //     "src/images/01.svg", "src/images/02.svg", "src/images/03.svg", "src/images/04.svg", "src/images/10.svg",
-    //     "src/images/09.svg", "src/images/05.svg", "src/images/06.svg", "src/images/07.svg", "src/images/08.svg"
-    // ];
-
+    // Images for the reels
     const imagePaths = [
-        "src/images/01.svg", "src/images/02.svg", "src/images/04.svg", "src/images/10.svg",
-        "src/images/09.svg", "src/images/05.svg", "src/images/08.svg"
+        "src/images/01.svg",
+        "src/images/02.svg",
+        "src/images/04.svg",
+        "src/images/10.svg",
+        "src/images/09.svg",
+        "src/images/05.svg",
+        "src/images/08.svg"
     ];
 
+    // Payout table (100 units = £10, so 1 unit = 10p)
     const fruitmachinePayouts = {
         cherry: {
             reel1: 2,
@@ -62,7 +67,6 @@
             reel4: 10,
         },
         lemon: {
-            // No payout for reel1 and reel2; payout for reel3 and reel4
             reel3: 8,
             reel4: 30,
         },
@@ -88,14 +92,24 @@
         }
     };
 
+    const symbolMap = {
+        "src/images/01.svg": "cherry",
+        "src/images/02.svg": "lemon",
+        "src/images/04.svg": "plum",
+        "src/images/10.svg": "melon",
+        "src/images/09.svg": "single",
+        "src/images/05.svg": "double",
+        "src/images/08.svg": "tripple"
+    };
+
     function getPayout(symbol, reelCount) {
         const payoutData = fruitmachinePayouts[symbol];
         return payoutData ? payoutData[`reel${reelCount}`] || 0 : 0;
     }
 
+    // For testing:
     console.log(getPayout("cherry", 4)); // 10
     console.log(getPayout("lemon", 3));  // 8
-
 
     let images = [];
     let imagesLoaded = 0;
@@ -116,14 +130,15 @@
             console.error(`Failed to load image: ${src}`);
         };
     });
+
     function adjustCanvasResolution() {
-        const scale = window.devicePixelRatio || 1; // ✅ Get screen pixel ratio
+        const scale = window.devicePixelRatio || 1; // Get screen pixel ratio
         canvas.width = 500 * scale;
         canvas.height = 300 * scale;
-        ctx.scale(scale, scale); // ✅ Scale drawing context to match
+        ctx.scale(scale, scale); // Scale drawing context to match
     }
 
-    adjustCanvasResolution(); // ✅ Call when initializing
+    adjustCanvasResolution(); // Call when initializing
 
     let reelSequences = Array.from({ length: reelCount }, () => [...imagePaths]);
 
@@ -146,8 +161,6 @@
         document.getElementById("hold3"),
         document.getElementById("hold4")
     ];
-
-
 
     // Initialize credits from localStorage or set to 100 if not available
     let credits = parseInt(localStorage.getItem('credits')) || 100;
@@ -188,13 +201,13 @@
             button.classList.remove("hold-active", "hold-flash");
         });
 
-        // **1 in 3 chance for holds to flash**
+        // 1 in 3 chance for holds to flash
         if (Math.random() < 1 / 3) {
             holdButtons.forEach((button, index) => {
                 button.disabled = false;
                 button.classList.add("hold-flash");
 
-                // ✅ Ensure clicking the button will "hold" the reel
+                // Ensure clicking the button will "hold" the reel
                 button.onclick = () => {
                     holdStatus[index] = true;
                     button.disabled = true;
@@ -204,7 +217,6 @@
             });
         }
     }
-
 
     function drawReels() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -218,13 +230,14 @@
                     ctx.drawImage(images[imagePaths.indexOf(imgName)], x, y, reelWidth, reelHeight);
                 }
             }
-            // squares above win line
+            // Uncomment these to show the win line:
             // ctx.strokeStyle = "red";
             // ctx.lineWidth = 3;
             // ctx.strokeRect(x, winLineY, reelWidth, reelHeight);
         }
     }
 
+    // Modified getWinningSymbols to return the winning symbols array
     function getWinningSymbols() {
         let winningSymbols = reels.map((reel, i) => {
             let offset = Math.round(reel.position / (reelHeight + imageGap));
@@ -232,11 +245,38 @@
             return reelSequences[i][winningIndex];
         });
         console.log("🎉 Winning Symbols on the Win Line:", winningSymbols);
-    }
-    function getRandomNumber(numbers) {
-        return numbers[Math.floor(Math.random() * numbers.length)];
+        return winningSymbols;
     }
 
+    // Compute win by counting consecutive matching symbols from the left
+    function computeWin(symbols) {
+        const baseSymbolImage = symbols[0];
+        // Convert the image path to a symbol name
+        const baseSymbol = symbolMap[baseSymbolImage] || baseSymbolImage;
+        let count = 1;
+        for (let i = 1; i < symbols.length; i++) {
+            // Use mapping for comparison as well if needed:
+            const currentSymbol = symbolMap[symbols[i]] || symbols[i];
+            if (currentSymbol === baseSymbol) count++;
+            else break;
+        }
+        console.log("baseSymbol, count", baseSymbol, count);
+        return getPayout(baseSymbol, count);
+    }
+
+    // Show win notice in the winNotice element
+    function showWinNotice(amount) {
+        const winNotice = document.getElementById("winNotice");
+        winNotice.textContent = `You won ${amount} credits!`;
+        // Optionally play a win sound
+        playWinSound();
+    }
+
+    // Clear the win notice display
+    function clearWinNotice() {
+        const winNotice = document.getElementById("winNotice");
+        winNotice.textContent = "";
+    }
 
     function spinReels(forceWin = false) {
         spinning = true;
@@ -246,10 +286,9 @@
         let winSymbol = null;
         let winIndex = null;
 
-        // Determine the winning symbol before any reels spin
+        // Determine the winning symbol before any reels spin if forceWin is true
         if (forceWin) {
-            // these numbers represent the different images.
-            winIndex = getRandomNumber([5,6,7])
+            winIndex = Math.floor(Math.random() * reelImages);
             winSymbol = reelSequences[0][winIndex]; // Pick the symbol from reel 1
         }
 
@@ -299,7 +338,18 @@
             if (stillSpinning) requestAnimationFrame(animate);
             else {
                 spinning = false;
-                getWinningSymbols();
+                const winningSymbols = getWinningSymbols();
+                const winAmount = computeWin(winningSymbols);
+                if (winAmount > 0) {
+                    showWinNotice(winAmount);
+                    // After 2 seconds, add the win to credits and update the display
+                    setTimeout(() => {
+                        credits += winAmount;
+                        localStorage.setItem('credits', credits);
+                        updateCreditDisplay();
+                        clearWinNotice();
+                    }, 2000);
+                }
                 resetHoldButtons();
             }
         }
@@ -307,13 +357,11 @@
         animate();
     }
 
-
-
     startButton.addEventListener("click", () => {
         if (!spinning) {
             // Check if the player has enough credits
             if (credits > 0) {
-                // Deduct one credit
+                // Deduct one credit per play
                 credits--;
                 localStorage.setItem('credits', credits);
                 updateCreditDisplay();
@@ -333,7 +381,6 @@
 
     winSpinButton.addEventListener("click", () => {
         if (!spinning) {
-            // playWinSound();
             spinReels(true);
         }
     });
