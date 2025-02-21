@@ -10,6 +10,7 @@
         .hold-active {
             background-color: green !important;
             color: white !important;
+            animation: none;
         }
         /* CSS for flashing buttons */
         .flash {
@@ -55,7 +56,7 @@
     <button id="hold4" disabled>Hold</button>
 </div>
 
-<!-- (Nudge buttons are present but not used in this hold-only mode) -->
+<!-- Nudge buttons (present but not used in this hold-only test) -->
 <div class="controls">
     <button id="nudge1" disabled>Nudge</button>
     <button id="nudge2" disabled>Nudge</button>
@@ -64,6 +65,7 @@
 </div>
 
 <script>
+    // ===== CANVAS & REEL SETUP =====
     const canvas = document.getElementById("slotCanvas");
     const ctx = canvas.getContext("2d");
 
@@ -113,7 +115,7 @@
         return data ? data[`reel${reelCount}`] || 0 : 0;
     }
 
-    // Preload images
+    // ===== PRELOAD IMAGES =====
     let images = [];
     let imagesLoaded = 0;
     imagePaths.forEach((src, index) => {
@@ -138,7 +140,7 @@
     }
     adjustCanvasResolution();
 
-    // Create a reel sequence for each reel.
+    // ===== REELS & STATE =====
     let reelSequences = Array.from({ length: reelCount }, () => [...imagePaths]);
     let reels = Array.from({ length: reelCount }, (_, i) => ({
         position: Math.floor(Math.random() * reelImages) * (reelHeight + imageGap),
@@ -148,14 +150,14 @@
     }));
 
     let spinning = false;
-    // holdStatus is an array of booleans indicating whether a reel is held
+    // holdStatus[i] is true if reel i is held (locked) during the next spin.
     let holdStatus = [false, false, false, false];
 
-    // For this hold-only mode, we disable nudges.
+    // For this test, we are not using nudges.
     let maxNudges = 3;
     let nudgesRemaining = maxNudges;
 
-    // References to control buttons
+    // ===== CONTROL BUTTON REFERENCES =====
     const startButton = document.getElementById("startButton");
     const winSpinButton = document.getElementById("winSpinButton");
     const confirmButton = document.getElementById("confirmButton");
@@ -176,7 +178,7 @@
         document.getElementById("nudge4")
     ];
 
-    // Initialize credits
+    // ===== CREDITS & SOUND =====
     let credits = parseFloat(localStorage.getItem('credits')) || 10.00;
     const creditCountElement = document.getElementById("creditCount");
     function updateCreditDisplay() {
@@ -191,7 +193,6 @@
         startButton.disabled = false;
     });
 
-    // Global sound state
     let soundEnabled = true;
     const soundToggleButton = document.getElementById("soundToggle");
     soundToggleButton.addEventListener("click", () => {
@@ -208,7 +209,7 @@
         new Audio("win.mp3").play();
     }
 
-    // Reset hold (and nudge) controls.
+    // ===== CONTROL RESET FUNCTIONS =====
     function resetHoldAndNudgeButtons() {
         holdStatus.fill(false);
         nudgesRemaining = maxNudges;
@@ -225,50 +226,7 @@
         confirmButton.disabled = true;
     }
 
-    // Helper: Check if all 4 reels match.
-    function checkFourReelWin() {
-        const symbols = getWinningSymbols();
-        return symbols.every(symbol => symbol === symbols[0]);
-    }
-
-    // After spin ends, enable the hold controls.
-    // The hold buttons will flash (via the "flash" class) for 3 seconds.
-    // When clicked, a hold button sets that reel as "held" (its holdStatus is set to true).
-    // The spin animation will then skip updating the position for held reels.
-    function enableHoldControls() {
-        const winNotice = document.getElementById("winNotice");
-        winNotice.textContent = "Click Hold to lock reels";
-        holdButtons.forEach((button, index) => {
-            button.disabled = false;
-            button.classList.add("flash");
-            button.onclick = () => {
-                holdStatus[index] = true;
-                button.disabled = true;
-                button.classList.remove("flash");
-                button.classList.add("hold-active");
-            };
-        });
-        // After 3 seconds, disable hold controls and check win.
-        setTimeout(() => {
-            holdButtons.forEach((button) => {
-                button.disabled = true;
-                button.classList.remove("flash");
-            });
-            const symbols = getWinningSymbols();
-            const winAmount = computeWin(symbols);
-            if (winAmount > 0) {
-                credits += winAmount;
-                localStorage.setItem('credits', credits);
-                updateCreditDisplay();
-                showWinNotice(winAmount);
-            }
-            setTimeout(() => {
-                clearWinNotice();
-                resetHoldAndNudgeButtons();
-            }, 1000);
-        }, 3000);
-    }
-
+    // ===== DRAW & WIN FUNCTIONS =====
     function drawReels() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (let i = 0; i < reelCount; i++) {
@@ -317,16 +275,17 @@
         document.getElementById("winNotice").textContent = "";
     }
 
-    // Spin reels. If forceWin is true, reels 0–2 are forced to a common symbol.
+    // ===== SPIN FUNCTION =====
+    // When you press Start, only reels that are NOT held will spin.
     function spinReels(forceWin = false) {
         spinning = true;
-        // For this hold-only version, we disable the nudge buttons.
+        // In this hold-only test, we disable nudge buttons.
         nudgeButtons.forEach(button => {
             button.disabled = true;
             button.classList.remove("flash");
         });
         nudgesRemaining = maxNudges;
-        holdStatus = [false, false, false, false];
+        // Do not reset holdStatus here so that held reels remain locked.
 
         const startTime = Date.now();
         let winSymbol = null;
@@ -336,11 +295,14 @@
             winSymbol = reelSequences[0][winIndex];
         }
         reels.forEach((reel, index) => {
-            reel.spinning = true;
-            reel.speed = Math.random() * 50 + 50;
-            reel.stopAt = startTime + spinDurations[index];
-            if (forceWin && index < 3) {
-                reel.position = winIndex * (reelHeight + imageGap);
+            // Only spin reels that are not held.
+            if (!holdStatus[index]) {
+                reel.spinning = true;
+                reel.speed = Math.random() * 50 + 50;
+                reel.stopAt = startTime + spinDurations[index];
+                if (forceWin && index < 3) {
+                    reel.position = winIndex * (reelHeight + imageGap);
+                }
             }
         });
 
@@ -348,7 +310,7 @@
             let stillSpinning = false;
             const currentTime = Date.now();
             reels.forEach((reel, index) => {
-                // Only update reel position if it is not held.
+                // Only update reel position if not held and if spinning.
                 if (!holdStatus[index] && reel.spinning) {
                     stillSpinning = true;
                     let timeRemaining = reel.stopAt - currentTime;
@@ -358,7 +320,6 @@
                     if (currentTime >= reel.stopAt) {
                         reel.spinning = false;
                         reel.speed = 0;
-                        // Snap position to nearest valid position.
                         reel.position = Math.round(reel.position / (reelHeight + imageGap)) * (reelHeight + imageGap);
                         if (forceWin && index < 3) {
                             reel.position = winIndex * (reelHeight + imageGap);
@@ -374,11 +335,11 @@
                 requestAnimationFrame(animate);
             } else {
                 spinning = false;
-                // Check for natural win.
+                // After spinning stops, update win line.
                 const symbols = getWinningSymbols();
                 const winAmount = computeWin(symbols);
+                // If a natural win occurred, process it immediately.
                 if (winAmount > 0) {
-                    // Process win immediately if a natural win occurs.
                     credits += winAmount;
                     localStorage.setItem('credits', credits);
                     updateCreditDisplay();
@@ -388,7 +349,7 @@
                         resetHoldAndNudgeButtons();
                     }, 1000);
                 } else if (credits > 1.00) {
-                    // Otherwise, enable hold controls.
+                    // Otherwise, enable hold controls so the player can lock reels.
                     enableHoldControls();
                 }
             }
@@ -396,8 +357,47 @@
         animate();
     }
 
+    // ===== HOLD CONTROL: Only hold buttons active =====
+    // After the spin stops, the hold buttons will flash.
+    // When a player clicks a hold button, that reel is locked (its holdStatus is set to true).
+    function enableHoldControls() {
+        const winNotice = document.getElementById("winNotice");
+        winNotice.textContent = "Click Hold to lock reels";
+        holdButtons.forEach((button, index) => {
+            button.disabled = false;
+            button.classList.add("flash");
+            button.onclick = () => {
+                holdStatus[index] = true;
+                button.disabled = true;
+                button.classList.remove("flash");
+                button.classList.add("hold-active");
+            };
+        });
+        // Automatically check for win after 3 seconds.
+        setTimeout(() => {
+            holdButtons.forEach((button) => {
+                button.disabled = true;
+                button.classList.remove("flash");
+            });
+            const symbols = getWinningSymbols();
+            const winAmount = computeWin(symbols);
+            if (winAmount > 0) {
+                credits += winAmount;
+                localStorage.setItem('credits', credits);
+                updateCreditDisplay();
+                showWinNotice(winAmount);
+            }
+            setTimeout(() => {
+                clearWinNotice();
+                resetHoldAndNudgeButtons();
+            }, 1000);
+        }, 3000);
+    }
+
+    // ===== MAIN CONTROL BUTTONS =====
     startButton.addEventListener("click", () => {
         if (!spinning && credits >= 0.10) {
+            // When starting, the reels that are held remain at their positions.
             credits -= 0.10;
             localStorage.setItem('credits', credits);
             updateCreditDisplay();
