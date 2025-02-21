@@ -6,17 +6,17 @@
     <link rel="stylesheet" href="./src/styles/main.css" />
     <title>Canvas Slot Machine</title>
     <style>
-        /* Example CSS for nudge-active state */
+        /* CSS for nudge-active state: yellow flash for nudges */
         .nudge-active {
-            background-color: orange !important;
+            background-color: yellow !important;
             color: black !important;
         }
-        /* Style for hold-active */
+        /* CSS for hold-active state */
         .hold-active {
             background-color: green !important;
             color: white !important;
         }
-        /* Style for hold-flash (if needed) */
+        /* CSS for flashing hold buttons */
         .hold-flash {
             animation: flash 0.5s infinite alternate;
         }
@@ -24,13 +24,17 @@
             from { opacity: 1; }
             to { opacity: 0.5; }
         }
+        /* Hide the Confirm button from view but keep it functional */
+        #confirmButton {
+            display: none;
+        }
     </style>
 </head>
 <body>
 <div id="creditDisplay" style="margin-bottom: 1rem; font-size: 1.5rem; height: 2rem">
     Credits: <span id="creditCount">£10.00</span>
 </div>
-<!-- New win notice element -->
+<!-- Win / Nudge notice -->
 <div id="winNotice" style="font-size: 1.5rem; margin-bottom: 1rem;"></div>
 
 <span class="wrapper">
@@ -38,16 +42,17 @@
     <canvas id="slotCanvas" width="500" height="300"></canvas>
   </span>
 
-<!-- ✅ Start, Win Spin, Reset Credits & Cancel buttons -->
+<!-- Control buttons -->
 <div class="button-row">
     <button id="startButton">Start</button>
     <button id="winSpinButton">Win Spin</button>
+    <button id="confirmButton" disabled>Confirm</button>
     <button id="resetCreditButton">Reset Credits</button>
     <button id="cancelButton">Cancel</button>
     <button id="soundToggle">Sound: On</button>
 </div>
 
-<!-- ✅ Hold buttons -->
+<!-- Hold buttons (default text "Hold") -->
 <div class="controls">
     <button id="hold1" disabled>Hold</button>
     <button id="hold2" disabled>Hold</button>
@@ -59,7 +64,7 @@
     const canvas = document.getElementById("slotCanvas");
     const ctx = canvas.getContext("2d");
 
-    // Images for the reels
+    // Image paths for reels
     const imagePaths = [
         "src/images/01.svg",
         "src/images/02.svg",
@@ -78,26 +83,26 @@
     const winLineY = 90;
     const spinDurations = [600, 1200, 1800, 2400];
 
-    // Payout table (values in pounds)
+    // Payout table (in pounds)
     const fruitmachinePayouts = {
-        cherry: { reel1: 0.20, reel2: 0.40, reel3: 0.80, reel4: 2.00 }, // 01
-        lemon: { reel3: 0.80, reel4: 3.00 }, // 02
-        plum: { reel3: 0.80, reel4: 5.00 }, // 04
-        triple: { reel3: 5.00, reel4: 100.00 }, // 10
-        double: { reel3: 3.00, reel4: 50.00 }, // 09
-        melon: { reel3: 1.00, reel4: 10.00 }, // 05
-        single: { reel3: 2.00, reel4: 25.00 }, // 08
+        cherry: { reel1: 0.20, reel2: 0.40, reel3: 0.80, reel4: 2.00 },
+        lemon:  { reel3: 0.80, reel4: 3.00 },
+        plum:   { reel3: 0.80, reel4: 5.00 },
+        triple: { reel3: 5.00, reel4: 100.00 },
+        double: { reel3: 3.00, reel4: 50.00 },
+        melon:  { reel3: 1.00, reel4: 10.00 },
+        single: { reel3: 2.00, reel4: 25.00 }
     };
 
-    // Mapping from image path to symbol name
+    // Mapping from image path to symbol name.
     const symbolMap = {
         "src/images/01.svg": "cherry",
         "src/images/02.svg": "lemon",
         "src/images/04.svg": "plum",
-        "src/images/05.svg": "melon",
-        "src/images/08.svg": "single",
+        "src/images/10.svg": "triple",
         "src/images/09.svg": "double",
-        "src/images/10.svg": "triple"
+        "src/images/05.svg": "melon",
+        "src/images/08.svg": "single"
     };
 
     function getPayout(symbol, reelCount) {
@@ -108,6 +113,7 @@
     console.log(getPayout("cherry", 4)); // 2.00
     console.log(getPayout("lemon", 3));  // 0.80
 
+    // Preload images
     let images = [];
     let imagesLoaded = 0;
     imagePaths.forEach((src, index) => {
@@ -133,6 +139,7 @@
     }
     adjustCanvasResolution();
 
+    // Create a reel sequence for each reel.
     let reelSequences = Array.from({ length: reelCount }, () => [...imagePaths]);
     let reels = Array.from({ length: reelCount }, (_, i) => ({
         position: Math.floor(Math.random() * reelImages) * (reelHeight + imageGap),
@@ -144,11 +151,12 @@
     let spinning = false;
     let holdStatus = [false, false, false, false];
 
-    // Global nudges per spin – 3 nudges available (randomly triggered)
+    // Global nudges per spin – 3 nudges available.
     let nudgesRemaining = 3;
 
     const startButton = document.getElementById("startButton");
     const winSpinButton = document.getElementById("winSpinButton");
+    const confirmButton = document.getElementById("confirmButton");
     const resetCreditButton = document.getElementById("resetCreditButton");
     const cancelButton = document.getElementById("cancelButton");
     const holdButtons = [
@@ -158,7 +166,7 @@
         document.getElementById("hold4")
     ];
 
-    // Initialize credits from localStorage or default to £10.00
+    // Initialize credits from localStorage or default to £10.00.
     let credits = parseFloat(localStorage.getItem('credits')) || 10.00;
     const creditCountElement = document.getElementById("creditCount");
     function updateCreditDisplay() {
@@ -166,7 +174,7 @@
     }
     updateCreditDisplay();
 
-    // Reset credits to default (£10.00)
+    // Reset credits to default (£10.00).
     resetCreditButton.addEventListener("click", () => {
         credits = 10.00;
         localStorage.setItem('credits', credits);
@@ -174,7 +182,7 @@
         startButton.disabled = false;
     });
 
-    // Global variable for sound state
+    // Global sound state.
     let soundEnabled = true;
     const soundToggleButton = document.getElementById("soundToggle");
     soundToggleButton.addEventListener("click", () => {
@@ -193,59 +201,99 @@
         audio.play();
     }
 
-    // Reset hold buttons for a new spin.
-    // Hold buttons are reset only when the spin is finished.
+    // While spinning, disable hold buttons.
     function resetHoldButtons() {
         holdStatus.fill(false);
-        // Reset nudges for this spin.
         nudgesRemaining = 3;
-        holdButtons.forEach((button, index) => {
-            // Only enable holds when spin is not in progress.
+        holdButtons.forEach((button) => {
             button.disabled = true;
-            button.textContent = "Hold";  // default text
+            button.textContent = "Hold";
             button.classList.remove("hold-active", "hold-flash", "nudge-active");
         });
+        confirmButton.disabled = true;
     }
 
-    // When spin completes, enable hold buttons with event listeners.
-    function enableHoldButtons() {
+    // Helper: Check if all 4 reels match.
+    function checkFourReelWin() {
+        const symbols = getWinningSymbols();
+        return symbols.every(symbol => symbol === symbols[0]);
+    }
+
+    // After spin, if credits > £1, enable hold buttons for nudging indefinitely.
+    // When a button is clicked, its text changes to "Nudge" (with .nudge-active styling),
+    // a nudge is applied, nudgesRemaining is decremented, and the win line is checked.
+    // If a win is detected, update credits, announce win, set nudgesRemaining to 0, and reset the game.
+    function enableHoldButtonsForNudging() {
+        const winNotice = document.getElementById("winNotice");
+        winNotice.textContent = `Nudges available: ${nudgesRemaining}`;
         holdButtons.forEach((button, index) => {
             button.disabled = false;
-            // Remove any previous event listeners by cloning.
+            button.classList.add("hold-flash");
             const newButton = button.cloneNode(true);
             button.parentNode.replaceChild(newButton, button);
             holdButtons[index] = newButton;
             newButton.addEventListener("click", () => {
-                // Do not allow hold activation if spin is still in progress.
-                if (spinning) return;
-                holdStatus[index] = true;
-                newButton.disabled = true;
-                newButton.classList.remove("nudge-active");
-                newButton.classList.add("hold-active");
+                if (nudgesRemaining > 0) {
+                    nudgesRemaining--;
+                    newButton.textContent = "Nudge";
+                    newButton.classList.add("nudge-active");
+                    winNotice.textContent = `Nudges available: ${nudgesRemaining}`;
+                    // Apply a nudge on the corresponding reel.
+                    reels[index].position -= (reelHeight + imageGap);
+                    if (reels[index].position < 0) {
+                        reels[index].position += reelImages * (reelHeight + imageGap);
+                    }
+                    drawReels();
+                    setTimeout(() => {
+                        newButton.textContent = "Hold";
+                        newButton.classList.remove("nudge-active");
+                        // Check win after each nudge.
+                        const winningSymbols = getWinningSymbols();
+                        const winAmount = computeWin(winningSymbols);
+                        if (checkFourReelWin() || winAmount > 0) {
+                            // Win detected: update credits, announce win, and reset nudges.
+                            disableHoldButtons();
+                            credits += winAmount;
+                            localStorage.setItem('credits', credits);
+                            updateCreditDisplay();
+                            showWinNotice(winAmount);
+                            nudgesRemaining = 0;
+                            setTimeout(() => {
+                                clearWinNotice();
+                                resetHoldButtons();
+                            }, 1000);
+                        }
+                    }, 1000);
+                }
             });
         });
+        confirmButton.disabled = false;
     }
 
-    // Apply a nudge on the reel at the given index.
-    function applyNudge(index, button) {
-        nudgesRemaining--;
-        // Move the reel upward by one full image increment.
-        reels[index].position -= (reelHeight + imageGap);
-        // Wrap-around if negative.
-        if (reels[index].position < 0) {
-            reels[index].position += reelImages * (reelHeight + imageGap);
+    // When the user clicks Confirm (or it's auto-triggered), disable hold buttons and compute win.
+    confirmButton.addEventListener("click", () => {
+        disableHoldButtons();
+        const winningSymbols = getWinningSymbols();
+        const winAmount = computeWin(winningSymbols);
+        if (winAmount > 0) {
+            showWinNotice(winAmount);
+            setTimeout(() => {
+                credits += winAmount;
+                localStorage.setItem('credits', credits);
+                updateCreditDisplay();
+                clearWinNotice();
+            }, 500);
         }
-        // Update the corresponding hold button to show "Nudge" and apply styling.
-        button.textContent = "Nudge";
-        button.classList.add("nudge-active");
-        // After 1 second, revert back to "Hold" (if not already held).
-        setTimeout(() => {
-            if (!holdStatus[index]) {
-                button.textContent = "Hold";
-                button.classList.remove("nudge-active");
-            }
-        }, 1000);
-        drawReels();
+        resetHoldButtons();
+    });
+
+    // Disable hold buttons.
+    function disableHoldButtons() {
+        holdButtons.forEach((button) => {
+            button.disabled = true;
+            button.classList.remove("hold-flash");
+        });
+        confirmButton.disabled = true;
     }
 
     function drawReels() {
@@ -260,7 +308,7 @@
                     ctx.drawImage(images[imagePaths.indexOf(imgName)], x, y, reelWidth, reelHeight);
                 }
             }
-            // Uncomment to visualize win line:
+            // Uncomment to visualize the win line:
             // ctx.strokeStyle = "red";
             // ctx.lineWidth = 3;
             // ctx.strokeRect(x, winLineY, reelWidth, reelHeight);
@@ -300,11 +348,12 @@
         document.getElementById("winNotice").textContent = "";
     }
 
+    // spinReels accepts a forceWin flag.
+    // In win spin mode, reels 0–2 are forced to a common symbol,
+    // and reel 3 is forced to a different symbol.
     function spinReels(forceWin = false) {
         spinning = true;
-        // Disable hold buttons during spin.
         holdButtons.forEach((button) => button.disabled = true);
-        // Reset nudges and hold states for this spin.
         nudgesRemaining = 3;
         holdStatus = [false, false, false, false];
 
@@ -320,11 +369,15 @@
                 reel.spinning = true;
                 reel.speed = Math.random() * 50 + 50;
                 reel.stopAt = startTime + spinDurations[index];
-                if (forceWin && index < 3) {
-                    reel.position = winIndex * (reelHeight + imageGap);
+                if (forceWin) {
+                    if (index < 3) {
+                        reel.position = winIndex * (reelHeight + imageGap);
+                    }
+                    // For reel 3, we'll force it later.
                 }
             }
         });
+
         function animate() {
             let stillSpinning = false;
             const currentTime = Date.now();
@@ -333,50 +386,58 @@
                     stillSpinning = true;
                     let timeRemaining = reel.stopAt - currentTime;
                     let totalSpinTime = spinDurations[index];
-                    if (timeRemaining < totalSpinTime * 0.1) reel.speed *= 0.80;
-                    else reel.speed *= 0.99;
+                    if (timeRemaining < totalSpinTime * 0.1) {
+                        reel.speed *= 0.80;
+                    } else {
+                        reel.speed *= 0.99;
+                    }
                     reel.position -= reel.speed;
                     if (currentTime >= reel.stopAt) {
                         reel.spinning = false;
                         reel.speed = 0;
                         reel.position = Math.round(reel.position / (reelHeight + imageGap)) * (reelHeight + imageGap);
-                        if (forceWin && index < 3) {
-                            reel.position = winIndex * (reelHeight + imageGap);
+                        if (forceWin) {
+                            if (index < 3) {
+                                reel.position = winIndex * (reelHeight + imageGap);
+                            } else if (index === 3) {
+                                let diffIndices = [];
+                                for (let i = 0; i < reelImages; i++) {
+                                    if (i !== winIndex) diffIndices.push(i);
+                                }
+                                let forcedIndex = diffIndices[Math.floor(Math.random() * diffIndices.length)];
+                                reel.position = forcedIndex * (reelHeight + imageGap);
+                            }
                         }
                     }
-                    if (reel.position < 0) reel.position = (reelImages - 1) * (reelHeight + imageGap);
+                    if (reel.position < 0) {
+                        reel.position = (reelImages - 1) * (reelHeight + imageGap);
+                    }
                 }
             });
             drawReels();
-            // Only trigger random nudges during normal spin (not win spin)
-            if (!forceWin && nudgesRemaining > 0 && Math.random() < 0.005) { // 0.5% chance per frame
-                // Pick a random reel that is not held.
-                let availableIndices = [];
-                for (let i = 0; i < holdStatus.length; i++) {
-                    if (!holdStatus[i]) availableIndices.push(i);
-                }
-                if (availableIndices.length > 0) {
-                    let randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
-                    applyNudge(randomIndex, holdButtons[randomIndex]);
-                }
-            }
-            if (stillSpinning) requestAnimationFrame(animate);
-            else {
+            if (stillSpinning) {
+                requestAnimationFrame(animate);
+            } else {
                 spinning = false;
-                // Once spin is complete, enable hold buttons for next spin.
-                enableHoldButtons();
+                // Immediately update the win line.
                 const winningSymbols = getWinningSymbols();
                 const winAmount = computeWin(winningSymbols);
+                // If a win is detected after the spin, immediately pay it out and reset.
                 if (winAmount > 0) {
+                    disableHoldButtons();
+                    credits += winAmount;
+                    localStorage.setItem('credits', credits);
+                    updateCreditDisplay();
                     showWinNotice(winAmount);
+                    nudgesRemaining = 0;
                     setTimeout(() => {
-                        credits += winAmount;
-                        localStorage.setItem('credits', credits);
-                        updateCreditDisplay();
                         clearWinNotice();
-                    }, 500);
+                        resetHoldButtons();
+                    }, 1000);
+                } else if (credits > 1.00) {
+                    // Otherwise, enable unlimited nudging.
+                    enableHoldButtonsForNudging();
                 }
-                resetHoldButtons();
             }
         }
         animate();
@@ -384,7 +445,7 @@
 
     startButton.addEventListener("click", () => {
         if (!spinning) {
-            // Each play costs £0.10
+            // Each play costs £0.10.
             if (credits >= 0.10) {
                 credits -= 0.10;
                 localStorage.setItem('credits', credits);
