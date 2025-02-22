@@ -131,6 +131,7 @@
 
     // ===== REEL STATE & SEQUENCES =====
     let reelSequences = Array.from({ length: reelCount }, () => [...imagePaths]);
+
     let reels = Array.from({ length: reelCount }, (_, i) => ({
         position: Math.floor(Math.random() * reelImages) * (reelHeight + imageGap),
         speed: Math.random() * 40 + 20,
