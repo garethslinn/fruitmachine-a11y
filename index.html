@@ -59,6 +59,9 @@
     const canvas = document.getElementById("slotCanvas");
     const ctx = canvas.getContext("2d");
 
+    let winHighlight = false; // Flag to track win state
+    let winningReels = []; // Stores indexes of winning reels
+
     // Image paths for reels
     const imagePaths = [
         "src/images/01.svg",
@@ -139,6 +142,7 @@
         stopAt: 0
     }));
 
+
     let spinning = false;
     // holdStatus[i] is true if reel i is locked (held)
     let holdStatus = [false, false, false, false];
@@ -218,8 +222,10 @@
     // ===== DRAW & WIN FUNCTIONS =====
     function drawReels() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         for (let i = 0; i < reelCount; i++) {
             let x = i * (reelWidth + 28) + 10;
+
             for (let j = 0; j < reelImages + 2; j++) {
                 let imgIndex = (Math.floor(reels[i].position / (reelHeight + imageGap)) + j) % reelImages;
                 let imgName = reelSequences[i][imgIndex];
@@ -255,11 +261,15 @@
         return getPayout(baseSymbol, count);
     }
 
+    // payment processed now
     function showWinNotice(amount) {
         const winNotice = document.getElementById("winNotice");
         winNotice.textContent = `You won £${amount.toFixed(2)}!`;
+        // 🔴 Change canvas background to red
+        canvas.classList.add("win-background");
         playWinSound();
     }
+
 
     function clearWinNotice() {
         document.getElementById("winNotice").textContent = "";
@@ -274,6 +284,8 @@
     function spinReels(forceWin = false) {
         spinning = true;
         winProcessed = false;
+        canvas.classList.remove("win-background"); // Ensure reset at new spin
+
         // Disable nudge buttons (hold-only mode)
         // nudgeButtons.forEach(button => {
         //     button.disabled = true;
@@ -342,6 +354,7 @@
 
                 // Process natural win only once.
                 if (!winProcessed && winAmount > 0) {
+
                     winProcessed = true;
                     credits += winAmount;
                     localStorage.setItem('credits', credits);
@@ -403,8 +416,12 @@
     }
 
     // ===== MAIN CONTROL BUTTONS =====
+
     startButton.addEventListener("click", () => {
         if (!spinning && credits >= 0.10) {
+
+            drawReels(); // Redraw without red highlight
+
             // Deduct cost per play.
             credits -= 0.10;
             localStorage.setItem('credits', credits);

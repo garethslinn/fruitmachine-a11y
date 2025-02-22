@@ -16,8 +16,17 @@ canvas {
     width: 100%;
     height: auto;
     max-height: 80vh;
-    background: white;
     image-rendering: crisp-edges;
+}
+
+#slotCanvas {
+    background-color: white;
+    transition: background-color 0.3s ease-in-out;
+}
+
+/* Winning background */
+.win-background {
+    background-color: red !important;
 }
 
 .controls {
