@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./src/styles/main.css" />
     <title>Canvas Slot Machine</title>
-    <style>
-
-    </style>
 </head>
 <body>
 <!-- Credits Display -->
@@ -39,7 +36,7 @@
 </div>
 
 <!-- Hold Buttons (for locking reels) -->
-<div class="controls">
+<div class="controls holds">
     <button id="hold1" disabled>Hold</button>
     <button id="hold2" disabled>Hold</button>
     <button id="hold3" disabled>Hold</button>
@@ -47,12 +44,12 @@
 </div>
 
 <!-- Nudge Buttons (present but not active in this hold-only test) -->
-<!--<div class="controls">-->
-<!--    <button id="nudge1" disabled>Nudge</button>-->
-<!--    <button id="nudge2" disabled>Nudge</button>-->
-<!--    <button id="nudge3" disabled>Nudge</button>-->
-<!--    <button id="nudge4" disabled>Nudge</button>-->
-<!--</div>-->
+<div class="controls nudges">
+    <button id="nudge1" disabled>Nudge</button>
+    <button id="nudge2" disabled>Nudge</button>
+    <button id="nudge3" disabled>Nudge</button>
+    <button id="nudge4" disabled>Nudge</button>
+</div>
 
 <script>
     // ===== CONFIGURATION & SETUP =====
@@ -147,13 +144,6 @@
     // holdStatus[i] is true if reel i is locked (held)
     let holdStatus = [false, false, false, false];
 
-    // In this test, we are not using nudges.
-    // let maxNudges = 3;
-    // let nudgesRemaining = maxNudges;
-
-    // We'll use a random generator to choose control mode (but for this test we force "hold")
-    let controlMode = "hold"; // For now, use hold-only mode.
-
     // ===== CONTROL BUTTON REFERENCES =====
     const startButton = document.getElementById("startButton");
     const winSpinButton = document.getElementById("winSpinButton");
@@ -167,12 +157,12 @@
         document.getElementById("hold3"),
         document.getElementById("hold4")
     ];
-    // const nudgeButtons = [
-    //     document.getElementById("nudge1"),
-    //     document.getElementById("nudge2"),
-    //     document.getElementById("nudge3"),
-    //     document.getElementById("nudge4")
-    // ];
+    const nudgeButtons = [
+        document.getElementById("nudge1"),
+        document.getElementById("nudge2"),
+        document.getElementById("nudge3"),
+        document.getElementById("nudge4")
+    ];
 
     // ===== CREDITS & SOUND =====
     let credits = parseFloat(localStorage.getItem('credits')) || 10.00;
@@ -287,18 +277,14 @@
         canvas.classList.remove("win-background"); // Ensure reset at new spin
 
         // Disable nudge buttons (hold-only mode)
-        // nudgeButtons.forEach(button => {
-        //     button.disabled = true;
-        //     button.classList.remove("flash");
-        // });
+        nudgeButtons.forEach(button => {
+            button.disabled = true;
+            button.classList.remove("flash");
+        });
         // Do NOT reset holdStatus so held reels remain locked.
         // (Reset of holds happens only when Start is pressed.)
-        // let maxNudges = 3;
-        // let nudgesRemaining = maxNudges;
-
-        // For this hold-only test, we force controlMode to "hold"
-        controlMode = "hold";
-        console.log("Control Mode:", controlMode);
+        let maxNudges = 3;
+        let nudgesRemaining = maxNudges;
 
         const startTime = Date.now();
         let winSymbol = null;
@@ -367,7 +353,9 @@
                     resetHoldAndNudgeButtons();
                 } else if (credits > 1.00 && !winProcessed) {
                     // If no win, enable hold controls.
-                    enableHoldControls();
+
+                    activateFeature();
+
                     logWin(null, winAmount);
                 }
             }
@@ -375,10 +363,114 @@
         animate();
     }
 
+    const activateFeature = () => {
+        const randomChoice = Math.random() < 0.5 ? 0 : 1; // Generate 0 or 1 randomly
+
+        if (randomChoice === 0) {
+            console.log("Activating Nudges");
+            activateNudges();
+        } else {
+            console.log("Activating Holds");
+            activateNudges();
+            // activateHolds();
+        }
+    };
+
+
+
+    // ===== Start Nudges
+
+    let totalNudges = 3; // Maximum number of nudges available across all reels
+
+    function enableNudgeControls() {
+        const winNotice = document.getElementById("winNotice");
+        winNotice.textContent = `Click Nudge to adjust reels (Max ${totalNudges} total)`;
+
+        nudgeButtons.forEach((button, index) => {
+            if (totalNudges > 0) {
+                button.disabled = false;
+                button.classList.add("flash");
+
+                button.onclick = () => {
+                    if (spinning || totalNudges <= 0) return;
+
+                    moveReelDown(index); // Move selected reel down
+
+                    totalNudges--; // Deduct from total available nudges
+
+                    // Disable all nudge buttons if no nudges remain
+                    if (totalNudges <= 0) {
+                        disableNudges();
+                    }
+
+                    // Check for a win after nudge
+                    setTimeout(() => {
+                        const symbols = getWinningSymbols();
+                        const winAmount = computeWin(symbols);
+                        if (winAmount > 0 && !winProcessed) {
+                            winProcessed = true;
+                            credits += winAmount;
+                            localStorage.setItem('credits', credits);
+                            updateCreditDisplay();
+                            showWinNotice(winAmount);
+                        }
+                        clearWinNotice();
+                    }, 3000);
+                };
+            } else {
+                button.disabled = true;
+                button.classList.remove("flash");
+            }
+        });
+    }
+
+    function moveReelDown(reelIndex) {
+        let stepSize = reelHeight + imageGap;
+
+        // Adjust the position to move downwards in the correct order
+        let currentIndex = Math.round(reels[reelIndex].position / stepSize);
+        let newIndex = (currentIndex - 1 + reelImages) % reelImages; // Move down correctly
+
+        // Update the reel position
+        reels[reelIndex].position = newIndex * stepSize;
+
+        drawReels(); // Update visuals
+        console.log(`Nudged Reel ${reelIndex + 1}, New Symbol: ${imagePaths[newIndex]}`);
+
+        // Ensure winning symbols update properly
+        getWinningSymbols();
+    }
+
+
+    function disableNudges() {
+        nudgeButtons.forEach((button) => {
+            button.disabled = true;
+            button.classList.remove("flash");
+        });
+    }
+
+
+
+    // ===== End Nudges
+
+
+
+    // 🔄 **Reset nudges on new spin**
+
+
+    function activateNudges() {
+        totalNudges = 3; // Reset the nudge count
+        enableNudgeControls(); // Reactivate the buttons
+    }
+
+
+    // ===== End Nudges
+
+
     // ===== HOLD CONTROLS (for locking reels) =====
     // After spinning stops, flash the hold buttons so the player can click them.
     // Held reels remain locked until the next spin.
-    function enableHoldControls() {
+    function activateHolds() {
         const winNotice = document.getElementById("winNotice");
         winNotice.textContent = "Click Hold to lock/unlock reels";
 
@@ -395,9 +487,6 @@
                 }
             };
         });
-
-
-
 
         // Automatically check for win after 3 seconds.
         setTimeout(() => {
@@ -452,11 +541,11 @@
             hold.textContent = "Hold";
             hold.classList.remove("hold-active", "flash");
         });
-        // nudgeButtons.forEach((nudge) => {
-        //     nudge.disabled = true;
-        //     nudge.textContent = "Nudge";
-        //     nudge.classList.remove("nudge-active", "flash");
-        // });
+        nudgeButtons.forEach((nudge) => {
+            nudge.disabled = true;
+            nudge.textContent = "Nudge";
+            nudge.classList.remove("nudge-active", "flash");
+        });
     }
 
     cancelButton.addEventListener("click", () => {
