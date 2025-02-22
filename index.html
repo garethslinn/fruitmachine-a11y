@@ -255,8 +255,13 @@
     function showWinNotice(amount) {
         const winNotice = document.getElementById("winNotice");
         winNotice.textContent = `You won £${amount.toFixed(2)}!`;
+
+
         // 🔴 Change canvas background to red
+
+        console.log('XXX amount.length', amount, amount.length)
         canvas.classList.add("win-background");
+
         playWinSound();
     }
 
@@ -367,12 +372,9 @@
         const randomChoice = Math.random() < 0.5 ? 0 : 1; // Generate 0 or 1 randomly
 
         if (randomChoice === 0) {
-            console.log("Activating Nudges");
             activateNudges();
         } else {
-            console.log("Activating Holds");
-            activateNudges();
-            // activateHolds();
+            activateHolds();
         }
     };
 
@@ -449,15 +451,6 @@
         });
     }
 
-
-
-    // ===== End Nudges
-
-
-
-    // 🔄 **Reset nudges on new spin**
-
-
     function activateNudges() {
         totalNudges = 3; // Reset the nudge count
         enableNudgeControls(); // Reactivate the buttons
@@ -509,7 +502,7 @@
     startButton.addEventListener("click", () => {
         if (!spinning && credits >= 0.10) {
 
-            drawReels(); // Redraw without red highlight
+            drawReels();
 
             // Deduct cost per play.
             credits -= 0.10;
