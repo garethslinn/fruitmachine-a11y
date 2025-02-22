@@ -239,7 +239,9 @@
         new Audio("win.mp3").play();
     }
 
-    // ===== WIN LOG FUNCTION =====
+
+    // WIN LOG: Scrollable list of wins
+    // Append a new win log entry showing number of reels matched, win amount, time, winning symbols, and current credits.
     function logWin(numMatched, winAmount) {
         const winLog = document.getElementById("winLog");
         const li = document.createElement("li");
@@ -402,17 +404,23 @@
     // Held reels remain locked until the next spin.
     function enableHoldControls() {
         const winNotice = document.getElementById("winNotice");
-        winNotice.textContent = "Click Hold to lock reels";
+        winNotice.textContent = "Click Hold to lock/unlock reels";
+
         holdButtons.forEach((button, index) => {
-            button.disabled = false;
-            button.classList.add("flash");
+            button.disabled = false; // Ensure the button can be interacted with
+            button.classList.add("flash"); // Flash effect to indicate hold is available
+
             button.onclick = () => {
-                holdStatus[index] = true;
-                button.disabled = true;
-                button.classList.remove("flash");
-                button.classList.add("hold-active");
+                holdStatus[index] = !holdStatus[index]; // Toggle the hold state
+                if (holdStatus[index]) {
+                    button.classList.add("hold-active"); // Add hold-active class
+                } else {
+                    button.classList.remove("hold-active"); // Remove hold-active class
+                }
             };
         });
+
+
 
 
         // Automatically check for win after 3 seconds.
@@ -426,12 +434,8 @@
                 updateCreditDisplay();
                 showWinNotice(winAmount);
                 const numMatched = symbols.filter(s => s === symbols[0]).length;
-                logWin(numMatched, winAmount);
             }
-            setTimeout(() => {
-                clearWinNotice();
-                // Note: Do NOT reset holdStatus here so held reels remain locked until next spin.
-            }, 1000);
+            clearWinNotice();
         }, 5000);
     }
 
@@ -478,24 +482,16 @@
     cancelButton.addEventListener("click", () => {
         // When Cancel is clicked, clear all holds.
         holdStatus = [false, false, false, false];
-
-        resetHoldAndNudgeButtons();
+        holdButtons.forEach((hold) => {
+            hold.disabled = true;
+            hold.classList.remove("hold-active");
+        });
     });
 
     // ===== INITIAL DRAW & WIN LOG SETUP =====
     setTimeout(drawReels, 200);
 
-    // WIN LOG: Scrollable list of wins
-    // Append a new win log entry showing number of reels matched, win amount, time, winning symbols, and current credits.
-    function logWin(numMatched, winAmount) {
-        const winLog = document.getElementById("winLog");
-        const li = document.createElement("li");
-        const now = new Date();
-        const winningSymbols = getWinningSymbols();
-        li.textContent = `${numMatched} reel(s) won £${winAmount.toFixed(2)} at ${now.toLocaleTimeString()} - Winning Symbols: ${winningSymbols.join(', ')} - Credits: £${credits.toFixed(2)}`;
-        winLog.appendChild(li);
-        winLog.scrollTop = winLog.scrollHeight;
-    }
+
 </script>
 </body>
 </html>
