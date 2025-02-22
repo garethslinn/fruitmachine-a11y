@@ -338,7 +338,7 @@
                 const symbols = getWinningSymbols();
                 const winAmount = computeWin(symbols);
 
-                // resetHoldAndNudgeButtons();
+                resetHoldAndNudgeButtons();
 
                 // Process natural win only once.
                 if (!winProcessed && winAmount > 0) {
@@ -355,6 +355,7 @@
                 } else if (credits > 1.00 && !winProcessed) {
                     // If no win, enable hold controls.
                     enableHoldControls();
+                    logWin(null, winAmount);
                 }
             }
         }
