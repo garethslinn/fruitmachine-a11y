@@ -164,6 +164,21 @@
         document.getElementById("nudge4")
     ];
 
+    function toggleFeatures(controlType) {
+        if (controlType === "nudges") {
+            document.querySelector(".controls.holds").style.display = "none";
+            document.querySelector(".controls.nudges").style.display = "flex";
+        } else {
+            // Default to Holds
+            document.querySelector(".controls.holds").style.display = "flex";
+            document.querySelector(".controls.nudges").style.display = "none";
+        }
+    }
+
+    // Default: Show Holds initially
+    toggleFeatures("holds");
+
+
     // ===== CREDITS & SOUND =====
     let credits = parseFloat(localStorage.getItem('credits')) || 10.00;
     const creditCountElement = document.getElementById("creditCount");
@@ -456,6 +471,7 @@
 
     function activateNudges() {
         totalNudges = 3; // Reset the nudge count
+        toggleFeatures("nudges");
         enableNudgeControls(); // Reactivate the buttons
     }
 
@@ -469,6 +485,8 @@
     function activateHolds() {
         // const winNotice = document.getElementById("winNotice");
         // winNotice.textContent = "Click Hold to lock/unlock reels";
+
+        toggleFeatures("holds   ");
 
         holdButtons.forEach((button, index) => {
             button.disabled = false; // Ensure the button can be interacted with
