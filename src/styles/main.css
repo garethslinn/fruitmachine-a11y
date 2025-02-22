@@ -82,3 +82,43 @@ button:hover {
 .wrapper {
     position: relative;
 }
+
+/* CSS for hold-active state: locked reels show a green background */
+.hold-active {
+    background-color: green !important;
+    color: white !important;
+    animation: none;
+}
+/* CSS for nudge-active state: yellow background for nudges */
+.nudge-active {
+    background-color: yellow !important;
+    color: black !important;
+    animation: none;
+}
+/* CSS for flashing buttons */
+.flash {
+    animation: flash 0.5s infinite alternate;
+}
+@keyframes flash {
+    from { opacity: 1; }
+    to { opacity: 0.5; }
+}
+/* Hide the Confirm button (used internally) */
+#confirmButton {
+    display: none;
+}
+/* Styles for the win log */
+#winLogContainer {
+    max-height: 150px;
+    overflow-y: auto;
+    background: #eee;
+    color: #333;
+    padding: 5px;
+    margin-top: 1rem;
+    text-align: left;
+    font-family: monospace;
+}
+#winLog li {
+    padding: 2px 0;
+    border-bottom: 1px solid #ccc;
+}
