@@ -65,13 +65,13 @@ button:hover {
 
 .hold-flash {
     animation: flash 0.5s infinite alternate;
-    background-color: yellow !important;
+    background-color: yellow;
     color: black;
 }
 
 .hold-active {
-    background-color: green !important;
-    color: white;
+    background-color: green!important;
+    color: black;
     animation: none;
 }
 
@@ -107,6 +107,8 @@ button:hover {
 }
 /* CSS for flashing buttons */
 .flash {
+    background-color: yellow;
+    color: black;
     animation: flash 0.5s infinite alternate;
 }
 @keyframes flash {
