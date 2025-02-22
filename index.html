@@ -31,7 +31,6 @@
     <button id="startButton">Start</button>
     <button id="winSpinButton">Win Spin</button>
     <button id="resetCreditButton">Reset Credits</button>
-    <button id="cancelButton">Cancel</button>
     <button id="soundToggle">Sound: On</button>
 </div>
 
@@ -148,7 +147,6 @@
     const startButton = document.getElementById("startButton");
     const winSpinButton = document.getElementById("winSpinButton");
     const resetCreditButton = document.getElementById("resetCreditButton");
-    const cancelButton = document.getElementById("cancelButton");
 
     // Separate button groups for hold and nudge
     const holdButtons = [
@@ -388,11 +386,14 @@
 
     const activateFeature = () => {
         const randomChoice = Math.random() < 0.5 ? 0 : 1; // Generate 0 or 1 randomly
+        const isActivated = (Math.random() < 0.1); // 1 in 10 = 0.5 is 1 in 2
 
-        if (randomChoice === 0) {
-            activateNudges();
-        } else {
-            activateHolds();
+        if (isActivated) {
+            if (randomChoice === 0) {
+                activateNudges();
+            } else {
+                activateHolds();
+            }
         }
     };
 
@@ -561,15 +562,6 @@
             nudge.classList.remove("nudge-active", "flash");
         });
     }
-
-    cancelButton.addEventListener("click", () => {
-        // When Cancel is clicked, clear all holds.
-        holdStatus = [false, false, false, false];
-        holdButtons.forEach((hold) => {
-            hold.disabled = true;
-            hold.classList.remove("hold-active");
-        });
-    });
 
     // ===== INITIAL DRAW & WIN LOG SETUP =====
     setTimeout(drawReels, 200);
