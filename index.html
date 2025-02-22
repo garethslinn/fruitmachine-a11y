@@ -13,9 +13,9 @@
 </div>
 
 <!-- WIN LOG: Scrollable list of wins -->
-<div id="winLogContainer">
-    <ul id="winLog"></ul>
-</div>
+<!--<div id="winLogContainer">-->
+<!--    <ul id="winLog" ></ul>-->
+<!--</div>-->
 
 <!-- Win / Notice -->
 <div id="winNotice" style="font-size: 1.5rem; margin-bottom: 1rem;"></div>
@@ -179,7 +179,7 @@
         startButton.disabled = false;
     });
 
-    let soundEnabled = true;
+    let soundEnabled = false;
     const soundToggleButton = document.getElementById("soundToggle");
     soundToggleButton.addEventListener("click", () => {
         soundEnabled = !soundEnabled;
@@ -257,7 +257,10 @@
         winNotice.textContent = `You won £${amount.toFixed(2)}!`;
 
 
+
         // 🔴 Change canvas background to red
+
+        // activate winner function
 
         console.log('XXX amount.length', amount, amount.length)
         canvas.classList.add("win-background");
@@ -267,7 +270,7 @@
 
 
     function clearWinNotice() {
-        document.getElementById("winNotice").textContent = "";
+        //document.getElementById("winNotice").textContent = "";
     }
 
     // ===== SPIN FUNCTION =====
@@ -353,7 +356,7 @@
                     showWinNotice(winAmount);
                     // Log the win using the number of matching reels (from left)
                     const numMatched = symbols.filter(s => s === symbols[0]).length;
-                    logWin(numMatched, winAmount);
+                    //logWin(numMatched, winAmount);
                     clearWinNotice();
                     resetHoldAndNudgeButtons();
                 } else if (credits > 1.00 && !winProcessed) {
@@ -361,7 +364,7 @@
 
                     activateFeature();
 
-                    logWin(null, winAmount);
+                    //logWin(null, winAmount);
                 }
             }
         }
@@ -385,8 +388,8 @@
     let totalNudges = 3; // Maximum number of nudges available across all reels
 
     function enableNudgeControls() {
-        const winNotice = document.getElementById("winNotice");
-        winNotice.textContent = `Click Nudge to adjust reels (Max ${totalNudges} total)`;
+        // const winNotice = document.getElementById("winNotice");
+        // winNotice.textContent = `Click Nudge to adjust reels (Max ${totalNudges} total)`;
 
         nudgeButtons.forEach((button, index) => {
             if (totalNudges > 0) {
@@ -464,8 +467,8 @@
     // After spinning stops, flash the hold buttons so the player can click them.
     // Held reels remain locked until the next spin.
     function activateHolds() {
-        const winNotice = document.getElementById("winNotice");
-        winNotice.textContent = "Click Hold to lock/unlock reels";
+        // const winNotice = document.getElementById("winNotice");
+        // winNotice.textContent = "Click Hold to lock/unlock reels";
 
         holdButtons.forEach((button, index) => {
             button.disabled = false; // Ensure the button can be interacted with
