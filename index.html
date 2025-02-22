@@ -387,23 +387,21 @@
         });
         // Automatically check for win after 3 seconds.
         setTimeout(() => {
-            holdButtons.forEach((button) => {
-                button.disabled = true;
-                button.classList.remove("flash");
-            });
             const symbols = getWinningSymbols();
             const winAmount = computeWin(symbols);
             if (winAmount > 0) {
+                holdButtons.forEach((button) => {
+                    button.disabled = true;
+                    button.classList.remove("flash");
+                });
                 credits += winAmount;
                 localStorage.setItem('credits', credits);
                 updateCreditDisplay();
                 showWinNotice(winAmount);
-            }
-            setTimeout(() => {
                 clearWinNotice();
                 resetHoldAndNudgeButtons();
-            }, 1000);
-        }, 3000);
+            }
+        }, 10000);
     }
 
     // === NUDGE CONTROLS (for adjusting reels) ===
@@ -569,6 +567,8 @@
             if (credits < 0.10) startButton.disabled = true;
             playReelSound();
             spinReels();
+            clearWinNotice();
+            resetHoldAndNudgeButtons();
         } else {
             alert("No more credits!");
         }
