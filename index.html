@@ -32,6 +32,7 @@
     <button id="winSpinButton">Win Spin</button>
     <button id="resetCreditButton">Reset Credits</button>
     <button id="soundToggle">Sound: On</button>
+    <button id="accessibilityButton">Accessibility: Off</button>
 </div>
 
 <!-- Hold Buttons (for locking reels) -->
@@ -51,12 +52,25 @@
 </div>
 
 <script>
+    let accessibilityMode = false;
+    let soundEnabled = true;
+
     // ===== CONFIGURATION & SETUP =====
     const canvas = document.getElementById("slotCanvas");
     const ctx = canvas.getContext("2d");
 
     let winHighlight = false; // Flag to track win state
     let winningReels = []; // Stores indexes of winning reels
+
+    function speak(text) {
+        if (accessibilityMode) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = "en-GB";
+            utterance.rate = 1;
+            speechSynthesis.speak(utterance);
+        }
+    }
+
 
     // Image paths for reels
     const imagePaths = [
@@ -149,6 +163,13 @@
     const winSpinButton = document.getElementById("winSpinButton");
     const resetCreditButton = document.getElementById("resetCreditButton");
 
+    document.getElementById("accessibilityButton").addEventListener("click", () => {
+        accessibilityMode = !accessibilityMode;
+        document.getElementById("accessibilityButton").textContent = `Accessibility Mode: ${accessibilityMode ? "On" : "Off"}`;
+        speak(`Accessibility mode ${accessibilityMode ? "enabled" : "disabled"}`);
+        document.querySelector(".controls.nudges").style.display = accessibilityMode ? "none" : "flex";
+    });
+
     // Separate button groups for hold and nudge
     const holdButtons = [
         document.getElementById("hold1"),
@@ -193,7 +214,7 @@
         startButton.disabled = false;
     });
 
-    let soundEnabled = false;
+
     const soundToggleButton = document.getElementById("soundToggle");
     soundToggleButton.addEventListener("click", () => {
         soundEnabled = !soundEnabled;
@@ -566,6 +587,43 @@
 
     // ===== INITIAL DRAW & WIN LOG SETUP =====
     setTimeout(drawReels, 200);
+
+
+    document.getElementById("startButton").addEventListener("click", () => {
+        speak("Spinning reels...");
+    });
+
+    document.querySelectorAll(".controls.holds button").forEach((button, index) => {
+        button.addEventListener("focus", () => {
+            const symbol = "Cherry"; // Replace with actual symbol mapping
+            speak(symbol);
+        });
+        button.addEventListener("click", () => {
+            const symbol = "Cherry"; // Replace with actual symbol mapping
+            const status = button.classList.toggle("hold-active") ? "Holding" : "Unholding";
+            speak(`${status} ${symbol}`);
+        });
+    });
+
+    function announceResults() {
+        const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
+        speak(`Reels show ${symbols.join(", ")}`);
+    }
+
+    function showWinNotice(amount) {
+        speak(`You have won £${amount.toFixed(2)}.`);
+    }
+
+    function idleReminder() {
+        speak("Press start to spin reels. You have XX credits, no holds available.");
+    }
+
+    let idleTimer = setTimeout(idleReminder, 60000);
+    document.addEventListener("click", () => {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(idleReminder, 60000);
+    });
+
 
 </script>
 </body>
