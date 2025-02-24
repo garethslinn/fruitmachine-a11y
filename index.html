@@ -283,6 +283,7 @@
             else break;
         }
         console.log("baseSymbol, count", baseSymbol, count);
+        announceResults();
         return getPayout(baseSymbol, count);
     }
 
@@ -408,11 +409,12 @@
 
     const activateFeature = () => {
         const randomChoice = Math.random() < 0.5 ? 0 : 1; // Generate 0 or 1 randomly
-        const isActivated = (Math.random() < 0.1); // 1 in 10 = 0.5 is 1 in 2
+        const isActivated = (Math.random() < 1); // 0.1  - 1 in 10 = 0.5 is 1 in 2
 
         if (isActivated) {
             if (randomChoice === 0) {
-                activateNudges();
+                // activateNudges();
+                activateHolds();
             } else {
                 activateHolds();
             }
@@ -594,20 +596,30 @@
     });
 
     document.querySelectorAll(".controls.holds button").forEach((button, index) => {
+        const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
+        const item = button.id
+
         button.addEventListener("focus", () => {
-            const symbol = "Cherry"; // Replace with actual symbol mapping
-            speak(symbol);
+            const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
+            const item = button.id; // e.g., "hold1"
+            const number = item.match(/\d+/)[0]; // Extracts "1" as a string
+
+            speak(symbols[number - 1]);
         });
         button.addEventListener("click", () => {
-            const symbol = "Cherry"; // Replace with actual symbol mapping
+            const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
+            const item = button.id; // e.g., "hold1"
+            const number = item.match(/\d+/)[0]; // Extracts "1" as a string
             const status = button.classList.toggle("hold-active") ? "Holding" : "Unholding";
-            speak(`${status} ${symbol}`);
+            speak(`${status} ${symbols[number - 1]}`);
         });
     });
 
     function announceResults() {
         const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
-        speak(`Reels show ${symbols.join(", ")}`);
+        speak(` ${symbols.join(", ")}`);
+        // const textValues = winningSymbols.map(symbol => symbolMap[symbol]);
+        // const reelText = "Reels show " + textValues.join(", ");
     }
 
     function showWinNotice(amount) {
