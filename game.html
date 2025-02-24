@@ -39,7 +39,7 @@
 
 <!-- Holds Region -->
 <div id="holdAnnouncement" aria-live="alert" class="visually-hidden"></div>
-<div class="controls holds" role="region" aria-label="Hold Controls Region" style="display: none;">
+<div class="controls holds" role="region" aria-label="Hold Controls Region">
     <div id="holdLiveRegion" class="visually-hidden" aria-live="polite" class=""></div>
     <button id="hold1" disabled aria-pressed="false" aria-label="Hold reel 1">Hold</button>
     <button id="hold2" disabled aria-pressed="false" aria-label="Hold reel 2">Hold</button>
@@ -78,7 +78,7 @@
         border: 0;
     }
     .controls.holds {
-        display: none; /* Hidden by default, shown when active */
+
     }
     .controls.holds button:not(:disabled) {
         background-color: #4CAF50; /* Green when active */
