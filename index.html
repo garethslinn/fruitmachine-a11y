@@ -8,90 +8,100 @@
 </head>
 <body>
 <!-- Credits Display -->
-<div id="creditDisplay" style="margin-bottom: 1rem; font-size: 1.5rem;">
-    Credits: <span id="creditCount">£10.00</span>
+<div id="creditDisplay" aria-hidden="true" style="margin-bottom: 1rem; font-size: 1.5rem;">
+    Credits: <span id="creditCount" aria-live="polite">£10.00</span>
 </div>
 
-<!-- WIN LOG: Scrollable list of wins -->
-<!--<div id="winLogContainer">-->
-<!--    <ul id="winLog" ></ul>-->
-<!--</div>-->
-
-<!-- Win / Notice -->
-<div id="winNotice" style="font-size: 1.5rem; margin-bottom: 1rem;"></div>
+<div aria-label="Slot Machine Reels"></div>
 
 <!-- Canvas & Overlay -->
-<span class="wrapper">
-    <img src="overlay.svg" id="canvasOverlay" />
-    <canvas id="slotCanvas" width="500" height="300"></canvas>
-  </span>
+<div class="wrapper" aria-hidden="true" role="region" aria-label="Slot Machine Reels" aria-describedby="reelStatus">
+    <img src="overlay.svg" id="canvasOverlay" alt="" />
+    <canvas id="slotCanvas" width="500" height="300" aria-hidden="true"></canvas>
+    <div id="reelStatus" aria-live="polite" class="visually-hidden"></div>
+</div>
+
+<div id="gameStatus" aria-live="polite" style="font-size: 1rem; margin: 0 10px;">
+    <!-- Dynamic status will be inserted here -->
+</div>
+<!-- Win / Notice -->
+<div id="winNotice" aria-live="assertive" style="font-size: 1.5rem; margin-bottom: 1rem;"></div>
+
+<!-- Hold Buttons -->
+<div id="holdAnnouncement" aria-live="alert" class="visually-hidden">
+    <!-- Content will be updated dynamically when holds are available -->
+</div>
+<div class="controls holds" role="group" aria-label="Hold Controls">
+    <button id="hold1" disabled aria-pressed="false" aria-label="Hold reel 1">Hold</button>
+    <button id="hold2" disabled aria-pressed="false" aria-label="Hold reel 2">Hold</button>
+    <button id="hold3" disabled aria-pressed="false" aria-label="Hold reel 3">Hold</button>
+    <button id="hold4" disabled aria-pressed="false" aria-label="Hold reel 4">Hold</button>
+</div>
 
 <!-- Main Control Buttons -->
 <div class="button-row">
     <button id="startButton">Start</button>
-    <button id="winSpinButton">Win Spin</button>
-    <button id="resetCreditButton">Reset Credits</button>
-    <button id="soundToggle">Sound: On</button>
-    <button id="accessibilityButton">Accessibility: Off</button>
+    <button aria-hidden="true" id="winSpinButton">Win Spin</button>
+    <button aria-hidden="true" id="resetCreditButton">Reset Credits</button>
+    <button id="soundToggle" aria-pressed="true">Sound: On</button>
+    <!-- Replaced reels button with status area -->
+
+    <button aria-hidden="true" id="accessibilityButton" aria-pressed="false">Accessibility: Off</button>
 </div>
 
-<!-- Hold Buttons (for locking reels) -->
-<div class="controls holds">
-    <button id="hold1" disabled>Hold</button>
-    <button id="hold2" disabled>Hold</button>
-    <button id="hold3" disabled>Hold</button>
-    <button id="hold4" disabled>Hold</button>
+<!-- Nudge Buttons -->
+<div aria-live="polite" class="visually-hidden">Nudges are available</div>
+<div aria-hidden="true" class="controls nudges" role="group" aria-label="Nudge Controls">
+    <button id="nudge1" disabled aria-label="Nudge reel 1">Nudge</button>
+    <button id="nudge2" disabled aria-label="Nudge reel 2">Nudge</button>
+    <button id="nudge3" disabled aria-label="Nudge reel 3">Nudge</button>
+    <button id="nudge4" disabled aria-label="Nudge reel 4">Nudge</button>
 </div>
 
-<!-- Nudge Buttons (present but not active in this hold-only test) -->
-<div class="controls nudges">
-    <button id="nudge1" disabled>Nudge</button>
-    <button id="nudge2" disabled>Nudge</button>
-    <button id="nudge3" disabled>Nudge</button>
-    <button id="nudge4" disabled>Nudge</button>
-</div>
+<!-- CSS for visually hidden content -->
+<style>
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+</style>
 
 <script>
-    let accessibilityMode = false;
+    let accessibilityMode = true;
     let soundEnabled = true;
 
-    // ===== CONFIGURATION & SETUP =====
     const canvas = document.getElementById("slotCanvas");
     const ctx = canvas.getContext("2d");
+    const reelStatus = document.getElementById("reelStatus");
+    const holdAnnouncement = document.getElementById("holdAnnouncement");
+    const gameStatus = document.getElementById("gameStatus");
 
-    let winHighlight = false; // Flag to track win state
-    let winningReels = []; // Stores indexes of winning reels
-
-    function speak(text) {
-        if (accessibilityMode) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = "en-GB";
-            utterance.rate = 1;
-            speechSynthesis.speak(utterance);
-        }
-    }
-
-
-    // Image paths for reels
+    // Image paths and configuration unchanged
     const imagePaths = [
-        "src/images/01.svg",
-        "src/images/02.svg",
-        "src/images/04.svg",
-        "src/images/10.svg",
-        "src/images/09.svg",
-        "src/images/05.svg",
+        "src/images/01.svg", "src/images/02.svg", "src/images/04.svg",
+        "src/images/10.svg", "src/images/09.svg", "src/images/05.svg",
         "src/images/08.svg"
     ];
-
+    const symbolMap = {
+        "src/images/01.svg": "cherry", "src/images/02.svg": "lemon",
+        "src/images/04.svg": "plum", "src/images/10.svg": "triple",
+        "src/images/09.svg": "double", "src/images/05.svg": "melon",
+        "src/images/08.svg": "single"
+    };
     const reelCount = 4;
     const reelImages = imagePaths.length;
     const reelHeight = 80;
     const reelWidth = 100;
     const imageGap = 10;
-    const winLineY = 90;
     const spinDurations = [600, 1200, 1800, 2400];
 
-    // Payout table (in pounds)
+    // Payout table unchanged
     const fruitmachinePayouts = {
         cherry: { reel1: 0.20, reel2: 0.40, reel3: 0.80, reel4: 2.00 },
         lemon:  { reel3: 0.80, reel4: 3.00 },
@@ -102,23 +112,12 @@
         single: { reel3: 2.00, reel4: 25.00 }
     };
 
-    // Mapping from image path to symbol name.
-    const symbolMap = {
-        "src/images/01.svg": "cherry",
-        "src/images/02.svg": "lemon",
-        "src/images/04.svg": "plum",
-        "src/images/10.svg": "triple",
-        "src/images/09.svg": "double",
-        "src/images/05.svg": "melon",
-        "src/images/08.svg": "single"
-    };
-
     function getPayout(symbol, reelCount) {
         const data = fruitmachinePayouts[symbol];
         return data ? data[`reel${reelCount}`] || 0 : 0;
     }
 
-    // ===== IMAGE PRELOADING =====
+    // Image preloading unchanged
     let images = [];
     let imagesLoaded = 0;
     imagePaths.forEach((src, index) => {
@@ -126,12 +125,7 @@
         images[index].src = src;
         images[index].onload = () => {
             imagesLoaded++;
-            if (imagesLoaded === imagePaths.length) {
-                drawReels();
-            }
-        };
-        images[index].onerror = () => {
-            console.error(`Failed to load image: ${src}`);
+            if (imagesLoaded === imagePaths.length) drawReels();
         };
     });
 
@@ -143,63 +137,27 @@
     }
     adjustCanvasResolution();
 
-    // ===== REEL STATE & SEQUENCES =====
+    // Reel state
     let reelSequences = Array.from({ length: reelCount }, () => [...imagePaths]);
-
-    let reels = Array.from({ length: reelCount }, (_, i) => ({
+    let reels = Array.from({ length: reelCount }, () => ({
         position: Math.floor(Math.random() * reelImages) * (reelHeight + imageGap),
         speed: Math.random() * 40 + 20,
         spinning: false,
         stopAt: 0
     }));
-
-
     let spinning = false;
-    // holdStatus[i] is true if reel i is locked (held)
     let holdStatus = [false, false, false, false];
 
-    // ===== CONTROL BUTTON REFERENCES =====
+    // Control button references
     const startButton = document.getElementById("startButton");
     const winSpinButton = document.getElementById("winSpinButton");
     const resetCreditButton = document.getElementById("resetCreditButton");
+    const soundToggleButton = document.getElementById("soundToggle");
+    const accessibilityButton = document.getElementById("accessibilityButton");
+    const holdButtons = Array.from(document.querySelectorAll(".controls.holds button"));
+    const nudgeButtons = Array.from(document.querySelectorAll(".controls.nudges button"));
 
-    document.getElementById("accessibilityButton").addEventListener("click", () => {
-        accessibilityMode = !accessibilityMode;
-        document.getElementById("accessibilityButton").textContent = `Accessibility Mode: ${accessibilityMode ? "On" : "Off"}`;
-        speak(`Accessibility mode ${accessibilityMode ? "enabled" : "disabled"}`);
-        document.querySelector(".controls.nudges").style.display = accessibilityMode ? "none" : "flex";
-    });
-
-    // Separate button groups for hold and nudge
-    const holdButtons = [
-        document.getElementById("hold1"),
-        document.getElementById("hold2"),
-        document.getElementById("hold3"),
-        document.getElementById("hold4")
-    ];
-    const nudgeButtons = [
-        document.getElementById("nudge1"),
-        document.getElementById("nudge2"),
-        document.getElementById("nudge3"),
-        document.getElementById("nudge4")
-    ];
-
-    function toggleFeatures(controlType) {
-        if (controlType === "nudges") {
-            document.querySelector(".controls.holds").style.display = "none";
-            document.querySelector(".controls.nudges").style.display = "flex";
-        } else {
-            // Default to Holds
-            document.querySelector(".controls.holds").style.display = "flex";
-            document.querySelector(".controls.nudges").style.display = "none";
-        }
-    }
-
-    // Default: Show Holds initially
-    toggleFeatures("holds");
-
-
-    // ===== CREDITS & SOUND =====
+    // Credits handling
     let credits = parseFloat(localStorage.getItem('credits')) || 10.00;
     const creditCountElement = document.getElementById("creditCount");
     function updateCreditDisplay() {
@@ -207,50 +165,60 @@
     }
     updateCreditDisplay();
 
+    function speak(text) {
+        if (accessibilityMode) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // New function to update game status
+    function updateGameStatus() {
+        const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
+        const holdsActive = holdButtons.some(button => !button.disabled);
+        const statusText = [
+            `Reels: ${symbols.join(", ")}`,
+            holdsActive ? "Holds activated" : "",
+            `Credits: £${credits.toFixed(2)}`
+        ].filter(Boolean).join(". ");
+        gameStatus.textContent = statusText;
+    }
+
     resetCreditButton.addEventListener("click", () => {
         credits = 10.00;
         localStorage.setItem('credits', credits);
         updateCreditDisplay();
         startButton.disabled = false;
+        updateGameStatus();
     });
 
-
-    const soundToggleButton = document.getElementById("soundToggle");
     soundToggleButton.addEventListener("click", () => {
         soundEnabled = !soundEnabled;
-        soundToggleButton.textContent = soundEnabled ? "Sound: On" : "Sound: Off";
+        soundToggleButton.textContent = `Sound: ${soundEnabled ? "On" : "Off"}`;
+        soundToggleButton.setAttribute("aria-pressed", soundEnabled);
+        updateGameStatus();
+    });
+
+    accessibilityButton.addEventListener("click", () => {
+        accessibilityMode = !accessibilityMode;
+        accessibilityButton.textContent = `Accessibility: ${accessibilityMode ? "On" : "Off"}`;
+        accessibilityButton.setAttribute("aria-pressed", accessibilityMode);
+        document.querySelector(".controls.nudges").style.display = accessibilityMode ? "none" : "flex";
+        updateGameStatus();
     });
 
     function playReelSound() {
-        if (!soundEnabled) return;
-        new Audio("reel.mp3").play();
+        if (soundEnabled) new Audio("reel.mp3").play();
     }
     function playWinSound() {
-        if (!soundEnabled) return;
-        new Audio("win.mp3").play();
+        if (soundEnabled) new Audio("win.mp3").play();
     }
 
-
-    // WIN LOG: Scrollable list of wins
-    // Append a new win log entry showing number of reels matched, win amount, time, winning symbols, and current credits.
-    function logWin(numMatched, winAmount) {
-        const winLog = document.getElementById("winLog");
-        const li = document.createElement("li");
-        const now = new Date();
-        const winningSymbols = getWinningSymbols();
-        li.textContent = `${numMatched} reel(s) won £${winAmount.toFixed(2)} at ${now.toLocaleTimeString()} - Winning Symbols: ${winningSymbols.join(', ')} - Credits: £${credits.toFixed(2)}`;
-        winLog.appendChild(li);
-        winLog.scrollTop = winLog.scrollHeight;
-    }
-
-
-    // ===== DRAW & WIN FUNCTIONS =====
+    // Drawing reels
     function drawReels() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         for (let i = 0; i < reelCount; i++) {
             let x = i * (reelWidth + 28) + 10;
-
             for (let j = 0; j < reelImages + 2; j++) {
                 let imgIndex = (Math.floor(reels[i].position / (reelHeight + imageGap)) + j) % reelImages;
                 let imgName = reelSequences[i][imgIndex];
@@ -263,88 +231,52 @@
     }
 
     function getWinningSymbols() {
-        let winningSymbols = reels.map((reel, i) => {
+        return reels.map((reel, i) => {
             let offset = Math.round(reel.position / (reelHeight + imageGap));
             let winningIndex = (offset + 2) % reelImages;
             return reelSequences[i][winningIndex];
         });
-        console.log("Winning Symbols:", winningSymbols);
-        return winningSymbols;
     }
 
     function computeWin(symbols) {
-        // Count contiguous matching symbols from the left.
         const baseSymbolImage = symbols[0];
         const baseSymbol = symbolMap[baseSymbolImage] || baseSymbolImage;
         let count = 1;
         for (let i = 1; i < symbols.length; i++) {
-            const currentSymbol = symbolMap[symbols[i]] || symbols[i];
-            if (currentSymbol === baseSymbol) count++;
+            if ((symbolMap[symbols[i]] || symbols[i]) === baseSymbol) count++;
             else break;
         }
-        console.log("baseSymbol, count", baseSymbol, count);
         announceResults();
         return getPayout(baseSymbol, count);
     }
 
-    // payment processed now
     function showWinNotice(amount) {
         const winNotice = document.getElementById("winNotice");
         winNotice.textContent = `You won £${amount.toFixed(2)}!`;
-
-
-
-        // 🔴 Change canvas background to red
-
-        // activate winner function
-
-        console.log('XXX amount.length', amount, amount.length)
         canvas.classList.add("win-background");
-
         playWinSound();
+        updateGameStatus();
     }
-
 
     function clearWinNotice() {
-        //document.getElementById("winNotice").textContent = "";
+        document.getElementById("winNotice").textContent = "";
     }
 
-    // ===== SPIN FUNCTION =====
-    // When Start is pressed, only reels that are NOT held (per holdStatus) will spin.
-    // This version does not reset holdStatus; held reels remain locked until the next spin.
-    // A global flag "winProcessed" is used to ensure the win is processed only once.
+    // Spin function
     let winProcessed = false;
-
     function spinReels(forceWin = false) {
         spinning = true;
         winProcessed = false;
-        canvas.classList.remove("win-background"); // Ensure reset at new spin
-
-        // Disable nudge buttons (hold-only mode)
-        nudgeButtons.forEach(button => {
-            button.disabled = true;
-            button.classList.remove("flash");
-        });
-        // Do NOT reset holdStatus so held reels remain locked.
-        // (Reset of holds happens only when Start is pressed.)
-        let maxNudges = 3;
-        let nudgesRemaining = maxNudges;
-
+        canvas.classList.remove("win-background");
+        nudgeButtons.forEach(button => button.disabled = true);
         const startTime = Date.now();
-        let winSymbol = null;
-        let winIndex = null;
-        if (forceWin) {
-            winIndex = Math.floor(Math.random() * reelImages);
-            winSymbol = reelSequences[0][winIndex];
-        }
+        let winIndex = forceWin ? Math.floor(Math.random() * reelImages) : null;
         reels.forEach((reel, index) => {
             if (!holdStatus[index]) {
                 reel.spinning = true;
                 reel.speed = Math.random() * 50 + 50;
                 reel.stopAt = startTime + spinDurations[index];
-                if (forceWin && index < 3) {
-                    reel.position = winIndex * (reelHeight + imageGap);
-                }
+                if (forceWin && index < 3) reel.position = winIndex * (reelHeight + imageGap);
             }
         });
 
@@ -362,93 +294,50 @@
                         reel.spinning = false;
                         reel.speed = 0;
                         reel.position = Math.round(reel.position / (reelHeight + imageGap)) * (reelHeight + imageGap);
-                        if (forceWin && index < 3) {
-                            reel.position = winIndex * (reelHeight + imageGap);
-                        }
+                        if (forceWin && index < 3) reel.position = winIndex * (reelHeight + imageGap);
                     }
-                    if (reel.position < 0) {
-                        reel.position = (reelImages - 1) * (reelHeight + imageGap);
-                    }
+                    if (reel.position < 0) reel.position = (reelImages - 1) * (reelHeight + imageGap);
                 }
             });
             drawReels();
-            if (stillSpinning) {
-                requestAnimationFrame(animate);
-            } else {
+            if (stillSpinning) requestAnimationFrame(animate);
+            else {
                 spinning = false;
-                // Once spinning stops, update the win line.
                 const symbols = getWinningSymbols();
                 const winAmount = computeWin(symbols);
-
                 resetHoldAndNudgeButtons();
-
-                // Process natural win only once.
                 if (!winProcessed && winAmount > 0) {
-
                     winProcessed = true;
                     credits += winAmount;
                     localStorage.setItem('credits', credits);
                     updateCreditDisplay();
                     showWinNotice(winAmount);
-                    // Log the win using the number of matching reels (from left)
-                    const numMatched = symbols.filter(s => s === symbols[0]).length;
-                    //logWin(numMatched, winAmount);
-                    clearWinNotice();
-                    resetHoldAndNudgeButtons();
                 } else if (credits > 1.00 && !winProcessed) {
-                    // If no win, enable hold controls.
-
                     activateFeature();
-
-                    //logWin(null, winAmount);
                 }
+                updateGameStatus();
             }
         }
         animate();
     }
 
     const activateFeature = () => {
-        const randomChoice = Math.random() < 0.5 ? 0 : 1; // Generate 0 or 1 randomly
-        const isActivated = (Math.random() < 1); // 0.1  - 1 in 10 = 0.5 is 1 in 2
-
-        if (isActivated) {
-            if (randomChoice === 0) {
-                // activateNudges();
-                activateHolds();
-            } else {
-                activateHolds();
-            }
-        }
+        if (Math.random() < 0.5) activateHolds();
+        else activateHolds(); // Changed to holds for testing; revert to activateNudges() if needed
     };
 
-
-
-    // ===== Start Nudges
-
-    let totalNudges = 3; // Maximum number of nudges available across all reels
-
+    // Nudge controls
+    let totalNudges = 3;
     function enableNudgeControls() {
-        // const winNotice = document.getElementById("winNotice");
-        // winNotice.textContent = `Click Nudge to adjust reels (Max ${totalNudges} total)`;
-
         nudgeButtons.forEach((button, index) => {
             if (totalNudges > 0) {
                 button.disabled = false;
                 button.classList.add("flash");
-
                 button.onclick = () => {
                     if (spinning || totalNudges <= 0) return;
-
-                    moveReelDown(index); // Move selected reel down
-
-                    totalNudges--; // Deduct from total available nudges
-
-                    // Disable all nudge buttons if no nudges remain
-                    if (totalNudges <= 0) {
-                        disableNudges();
-                    }
-
-                    // Check for a win after nudge
+                    moveReelDown(index);
+                    totalNudges--;
+                    if (totalNudges <= 0) disableNudges();
                     setTimeout(() => {
                         const symbols = getWinningSymbols();
                         const winAmount = computeWin(symbols);
@@ -459,184 +348,132 @@
                             updateCreditDisplay();
                             showWinNotice(winAmount);
                         }
-                        clearWinNotice();
-                    }, 3000);
+                        updateGameStatus();
+                    }, 300);
                 };
-            } else {
-                button.disabled = true;
-                button.classList.remove("flash");
             }
         });
     }
 
     function moveReelDown(reelIndex) {
         let stepSize = reelHeight + imageGap;
-
-        // Adjust the position to move downwards in the correct order
         let currentIndex = Math.round(reels[reelIndex].position / stepSize);
-        let newIndex = (currentIndex - 1 + reelImages) % reelImages; // Move down correctly
-
-        // Update the reel position
+        let newIndex = (currentIndex - 1 + reelImages) % reelImages;
         reels[reelIndex].position = newIndex * stepSize;
-
-        drawReels(); // Update visuals
-        console.log(`Nudged Reel ${reelIndex + 1}, New Symbol: ${imagePaths[newIndex]}`);
-
-        // Ensure winning symbols update properly
-        getWinningSymbols();
+        drawReels();
+        announceResults();
     }
 
-
     function disableNudges() {
-        nudgeButtons.forEach((button) => {
+        nudgeButtons.forEach(button => {
             button.disabled = true;
             button.classList.remove("flash");
         });
     }
 
     function activateNudges() {
-        totalNudges = 3; // Reset the nudge count
+        totalNudges = 3;
         toggleFeatures("nudges");
-        enableNudgeControls(); // Reactivate the buttons
+        enableNudgeControls();
     }
 
-
-    // ===== End Nudges
-
-
-    // ===== HOLD CONTROLS (for locking reels) =====
-    // After spinning stops, flash the hold buttons so the player can click them.
-    // Held reels remain locked until the next spin.
+    // Hold controls
     function activateHolds() {
-        // const winNotice = document.getElementById("winNotice");
-        // winNotice.textContent = "Click Hold to lock/unlock reels";
-
-        toggleFeatures("holds   ");
-
+        toggleFeatures("holds");
         holdButtons.forEach((button, index) => {
-            button.disabled = false; // Ensure the button can be interacted with
-            button.classList.add("flash"); // Flash effect to indicate hold is available
-
+            button.disabled = false;
+            button.classList.add("flash");
             button.onclick = () => {
-                holdStatus[index] = !holdStatus[index]; // Toggle the hold state
-                if (holdStatus[index]) {
-                    button.classList.add("hold-active"); // Add hold-active class
-                } else {
-                    button.classList.remove("hold-active"); // Remove hold-active class
-                }
+                holdStatus[index] = !holdStatus[index];
+                button.setAttribute("aria-pressed", holdStatus[index]);
+                button.classList.toggle("hold-active", holdStatus[index]);
+                announceResults();
+                updateGameStatus(); // Update status after hold toggle
             };
         });
-
-        // Automatically check for win after 3 seconds.
-        setTimeout(() => {
-            const symbols = getWinningSymbols();
-            const winAmount = computeWin(symbols);
-            if (winAmount > 0 && !winProcessed) {
-                winProcessed = true;
-                credits += winAmount;
-                localStorage.setItem('credits', credits);
-                updateCreditDisplay();
-                showWinNotice(winAmount);
-                const numMatched = symbols.filter(s => s === symbols[0]).length;
-            }
-            clearWinNotice();
-        }, 5000);
+        holdAnnouncement.textContent = "Hold feature activated. You can now hold reels.";
+        updateGameStatus(); // Update status when holds are activated
     }
 
-    // ===== MAIN CONTROL BUTTONS =====
-
+    // Main controls
     startButton.addEventListener("click", () => {
         if (!spinning && credits >= 0.10) {
-
-            drawReels();
-
-            // Deduct cost per play.
             credits -= 0.10;
             localStorage.setItem('credits', credits);
             updateCreditDisplay();
             if (credits < 0.10) startButton.disabled = true;
             playReelSound();
-            // On Start, do NOT reset holdStatus so that held reels remain locked.
             spinReels();
             clearWinNotice();
-            // Do not reset holds here.
+            reelStatus.textContent = "Spinning reels...";
+            updateGameStatus();
         } else {
-            alert("No more credits!");
+            document.getElementById("winNotice").textContent = "No more credits!";
+            updateGameStatus();
         }
     });
 
     winSpinButton.addEventListener("click", () => {
         if (!spinning) spinReels(true);
+        updateGameStatus();
     });
 
-    // ===== CONTROL RESET FUNCTION =====
-    // Do NOT reset holdStatus during the hold phase (held reels remain locked until next spin)
-
+    // Modified resetHoldAndNudgeButtons to clear hold announcement
     function resetHoldAndNudgeButtons() {
-        // For hold-only test, we do NOT reset holdStatus.
         holdStatus = [false, false, false, false];
-        holdButtons.forEach((hold) => {
-            hold.disabled = true;
-            hold.textContent = "Hold";
-            hold.classList.remove("hold-active", "flash");
+        holdButtons.forEach(button => {
+            button.disabled = true;
+            button.setAttribute("aria-pressed", "false");
+            button.classList.remove("hold-active", "flash");
         });
-        nudgeButtons.forEach((nudge) => {
-            nudge.disabled = true;
-            nudge.textContent = "Nudge";
-            nudge.classList.remove("nudge-active", "flash");
+        nudgeButtons.forEach(button => {
+            button.disabled = true;
+            button.classList.remove("flash");
         });
+        holdAnnouncement.textContent = "";
+        updateGameStatus(); // Update status when resetting
     }
 
-    // ===== INITIAL DRAW & WIN LOG SETUP =====
-    setTimeout(drawReels, 200);
-
-
-    document.getElementById("startButton").addEventListener("click", () => {
-        speak("Spinning reels...");
-    });
+    function toggleFeatures(controlType) {
+        document.querySelector(".controls.holds").style.display = controlType === "nudges" ? "none" : "flex";
+        document.querySelector(".controls.nudges").style.display = controlType === "nudges" ? "flex" : "none";
+    }
 
     document.querySelectorAll(".controls.holds button").forEach((button, index) => {
-        const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
-        const item = button.id
+        const liveRegion = document.createElement("div");
+        liveRegion.setAttribute("aria-live", "alert");
+        liveRegion.className = "visually-hidden";
+        button.parentNode.appendChild(liveRegion);
 
         button.addEventListener("focus", () => {
             const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
-            const item = button.id; // e.g., "hold1"
-            const number = item.match(/\d+/)[0]; // Extracts "1" as a string
-
-            speak(symbols[number - 1]);
+            const item = button.id;
+            const number = item.match(/\d+/)[0];
+            const symbol = symbols[number - 1];
+            liveRegion.textContent = `Current symbol on reel ${number}: ${symbol}`;
         });
+
         button.addEventListener("click", () => {
             const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
-            const item = button.id; // e.g., "hold1"
-            const number = item.match(/\d+/)[0]; // Extracts "1" as a string
+            const item = button.id;
+            const number = item.match(/\d+/)[0];
+            const symbol = symbols[number - 1];
             const status = button.classList.toggle("hold-active") ? "Holding" : "Unholding";
-            speak(`${status} ${symbols[number - 1]}`);
+            liveRegion.textContent = `${status} reel ${number}: ${symbol}`;
         });
     });
 
+    // Accessibility announcements
     function announceResults() {
         const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
-        speak(` ${symbols.join(", ")}`);
-        // const textValues = winningSymbols.map(symbol => symbolMap[symbol]);
-        // const reelText = "Reels show " + textValues.join(", ");
+        reelStatus.textContent = `Reels show: ${symbols.join(", ")}`;
     }
 
-    function showWinNotice(amount) {
-        speak(`You have won £${amount.toFixed(2)}.`);
-    }
-
-    function idleReminder() {
-        speak("Press start to spin reels. You have XX credits, no holds available.");
-    }
-
-    let idleTimer = setTimeout(idleReminder, 60000);
-    document.addEventListener("click", () => {
-        clearTimeout(idleTimer);
-        idleTimer = setTimeout(idleReminder, 60000);
-    });
-
-
+    // Initial setup
+    setTimeout(() => {
+        drawReels();
+        updateGameStatus(); // Initial status update
+    }, 200);
 </script>
 </body>
 </html>
