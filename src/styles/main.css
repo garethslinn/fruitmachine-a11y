@@ -134,3 +134,23 @@ button:hover {
     padding: 2px 0;
     border-bottom: 1px solid #ccc;
 }
+
+.breadcrumbs {
+    background: #fff;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    color: #000;
+
+    a {
+        color: #000;
+    }
+}
+.breadcrumbs ul {
+    display: flex;
+    list-style: none;
+    padding: 0;
+}
+.breadcrumbs li:not(:last-child)::after {
+    content: " > ";
+    margin: 0 5px;
+}
