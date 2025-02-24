@@ -8,7 +8,7 @@
 </head>
 <body>
 <!-- Credits Display -->
-<div id="creditDisplay" aria-hidden="true" style="margin-bottom: 1rem; font-size: 1.5rem;">
+<div id="creditDisplay" aria-hidden="true" style="margin-bottom: 1rem; font-size: 1.5rem;" class="visually-hidden">
     Credits: <span id="creditCount" aria-live="polite">£10.00</span>
 </div>
 
@@ -31,7 +31,7 @@
 
 <!-- Holds Region -->
 <div id="holdAnnouncement" aria-live="alert" class="visually-hidden"></div>
-<div class="controls holds" role="region" aria-label="Hold Controls Region" style="display: none;">
+<div class="controls holds visually-hidden" role="region" aria-label="Hold Controls Region" style="display: none;">
     <div id="holdLiveRegion" aria-live="polite" class="visually-hidden"></div>
     <button id="hold1" disabled aria-pressed="false" aria-label="Hold reel 1">Hold</button>
     <button id="hold2" disabled aria-pressed="false" aria-label="Hold reel 2">Hold</button>
