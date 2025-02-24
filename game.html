@@ -16,7 +16,7 @@
 </nav>
 
 <!-- Credits Display -->
-<div id="creditDisplay" aria-hidden="true" style="margin-bottom: 1rem; font-size: 1.5rem;" class="visually-hidden">
+<div id="creditDisplay" aria-hidden="true" style="margin-bottom: 1rem; font-size: 1.5rem;" class="">
     Credits: <span id="creditCount" aria-live="polite">£10.00</span>
 </div>
 
@@ -39,8 +39,8 @@
 
 <!-- Holds Region -->
 <div id="holdAnnouncement" aria-live="alert" class="visually-hidden"></div>
-<div class="controls holds visually-hidden" role="region" aria-label="Hold Controls Region" style="display: none;">
-    <div id="holdLiveRegion" aria-live="polite" class="visually-hidden"></div>
+<div class="controls holds" role="region" aria-label="Hold Controls Region" style="display: none;">
+    <div id="holdLiveRegion" class="visually-hidden" aria-live="polite" class=""></div>
     <button id="hold1" disabled aria-pressed="false" aria-label="Hold reel 1">Hold</button>
     <button id="hold2" disabled aria-pressed="false" aria-label="Hold reel 2">Hold</button>
     <button id="hold3" disabled aria-pressed="false" aria-label="Hold reel 3">Hold</button>
@@ -489,12 +489,12 @@
         const nudges = document.querySelector(".controls.nudges");
         if (controlType === "holds") {
             holds.style.display = "flex"; // Show holds
-            nudges.style.display = "none";
+            nudges.style.display = "block";
         } else if (controlType === "nudges") {
-            holds.style.display = "none";
+            holds.style.display = "block";
             nudges.style.display = "flex"; // Show nudges
         } else {
-            holds.style.display = "none";
+            holds.style.display = "block";
             nudges.style.display = "none"; // Hide both
         }
     }
