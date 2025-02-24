@@ -21,16 +21,17 @@
     <div aria-hidden="true" id="reelStatus" aria-live="polite" class="visually-hidden"></div>
 </div>
 
-<div id="gameStatus" aria-live="polite" style="font-size: 1rem; margin: 0 10px;">
+<!-- Status Region -->
+<div id="gameStatus" class="visually-hidden" role="region" aria-label="Game Status" aria-live="polite" style="font-size: 1rem; margin: 0 10px;">
     <!-- Dynamic status will be inserted here -->
 </div>
 
 <!-- Win / Notice -->
 <div id="winNotice" aria-live="assertive" style="font-size: 1.5rem; margin-bottom: 1rem;"></div>
 
-<!-- Hold Buttons -->
+<!-- Holds Region -->
 <div id="holdAnnouncement" aria-live="alert" class="visually-hidden"></div>
-<div class="controls holds" role="group" aria-label="Hold Controls">
+<div class="controls holds" role="region" aria-label="Hold Controls Region" style="display: none;">
     <div id="holdLiveRegion" aria-live="polite" class="visually-hidden"></div>
     <button id="hold1" disabled aria-pressed="false" aria-label="Hold reel 1">Hold</button>
     <button id="hold2" disabled aria-pressed="false" aria-label="Hold reel 2">Hold</button>
@@ -38,25 +39,25 @@
     <button id="hold4" disabled aria-pressed="false" aria-label="Hold reel 4">Hold</button>
 </div>
 
-<!-- Main Control Buttons -->
+<!-- Main Control Buttons with Start Region -->
 <div class="button-row">
-    <button id="startButton">Start</button>
+    <button id="startButton" aria-label="Start Spin">Start</button>
     <button aria-hidden="true" class="visually-hidden" id="winSpinButton">Win Spin</button>
     <button aria-hidden="true" class="visually-hidden" id="resetCreditButton">Reset Credits</button>
-    <button id="soundToggle" aria-pressed="true">Sound: On</button>
+    <button aria-hidden="true" class="visually-hidden" id="soundToggle" aria-pressed="true">Sound: On</button>
     <button aria-hidden="true" class="visually-hidden" id="accessibilityButton" aria-pressed="false">Accessibility: Off</button>
 </div>
 
 <!-- Nudge Buttons -->
 <div aria-live="polite" aria-hidden="true" class="visually-hidden">Nudges are available</div>
-<div aria-hidden="true" class="visually-hidden" class="controls nudges" role="group" aria-label="Nudge Controls">
+<div aria-hidden="true" class="visually-hidden controls nudges" role="group" aria-label="Nudge Controls" style="display: none;">
     <button id="nudge1" disabled aria-label="Nudge reel 1">Nudge</button>
     <button id="nudge2" disabled aria-label="Nudge reel 2">Nudge</button>
     <button id="nudge3" disabled aria-label="Nudge reel 3">Nudge</button>
     <button id="nudge4" disabled aria-label="Nudge reel 4">Nudge</button>
 </div>
 
-<!-- CSS for visually hidden content -->
+<!-- CSS for visually hidden content and button styling -->
 <style>
     .visually-hidden {
         position: absolute;
@@ -67,6 +68,24 @@
         overflow: hidden;
         clip: rect(0, 0, 0, 0);
         border: 0;
+    }
+    .controls.holds {
+        display: none; /* Hidden by default, shown when active */
+    }
+    .controls.holds button:not(:disabled) {
+        background-color: #4CAF50; /* Green when active */
+        color: white;
+        cursor: pointer;
+    }
+    .controls.holds button:disabled {
+        background-color: #ccc; /* Gray when disabled */
+        cursor: not-allowed;
+    }
+    .flash {
+        animation: flash 1s infinite; /* Optional: Flash effect for active buttons */
+    }
+    @keyframes flash {
+        50% { opacity: 0.5; }
     }
 </style>
 
@@ -161,7 +180,7 @@
     let credits = parseFloat(localStorage.getItem('credits')) || 10.00;
     const creditCountElement = document.getElementById("creditCount");
     function updateCreditDisplay() {
-        creditCountElement.textContent = `£${credits.toFixed(2)}`;
+        creditCountElement.textContent = "£" + credits.toFixed(2);
     }
     updateCreditDisplay();
 
@@ -328,8 +347,12 @@
     }
 
     const activateFeature = () => {
-        if (Math.random() < 0.5) activateHolds();
-        else activateHolds();
+        // Fixed to properly alternate (uncomment nudges if desired)
+        if (Math.random() < 0.5) {
+            activateHolds();
+        } else {
+            activateNudges(); // Uncommented to test both features
+        }
     };
 
     // Nudge controls
@@ -439,8 +462,9 @@
         holdStatus = [false, false, false, false];
         holdButtons.forEach(button => {
             button.disabled = true;
+            button.classList.remove("flash");
+            button.classList.remove("hold-active");
             button.setAttribute("aria-pressed", "false");
-            button.classList.remove("hold-active", "flash");
         });
         nudgeButtons.forEach(button => {
             button.disabled = true;
@@ -448,12 +472,23 @@
         });
         holdAnnouncement.textContent = "";
         holdLiveRegion.textContent = "";
+        toggleFeatures("none"); // Hide both holds and nudges
         updateGameStatus();
     }
 
     function toggleFeatures(controlType) {
-        document.querySelector(".controls.holds").style.display = controlType === "nudges" ? "none" : "flex";
-        document.querySelector(".controls.nudges").style.display = controlType === "nudges" ? "flex" : "none";
+        const holds = document.querySelector(".controls.holds");
+        const nudges = document.querySelector(".controls.nudges");
+        if (controlType === "holds") {
+            holds.style.display = "flex"; // Show holds
+            nudges.style.display = "none";
+        } else if (controlType === "nudges") {
+            holds.style.display = "none";
+            nudges.style.display = "flex"; // Show nudges
+        } else {
+            holds.style.display = "none";
+            nudges.style.display = "none"; // Hide both
+        }
     }
 
     // Simplified hold button navigation
