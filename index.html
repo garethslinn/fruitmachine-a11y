@@ -18,20 +18,20 @@
 <div class="wrapper" aria-hidden="true" role="region" aria-label="Slot Machine Reels" aria-describedby="reelStatus">
     <img src="overlay.svg" id="canvasOverlay" alt="" />
     <canvas id="slotCanvas" width="500" height="300" aria-hidden="true"></canvas>
-    <div id="reelStatus" aria-live="polite" class="visually-hidden"></div>
+    <div aria-hidden="true" id="reelStatus" aria-live="polite" class="visually-hidden"></div>
 </div>
 
 <div id="gameStatus" aria-live="polite" style="font-size: 1rem; margin: 0 10px;">
     <!-- Dynamic status will be inserted here -->
 </div>
+
 <!-- Win / Notice -->
 <div id="winNotice" aria-live="assertive" style="font-size: 1.5rem; margin-bottom: 1rem;"></div>
 
 <!-- Hold Buttons -->
-<div id="holdAnnouncement" aria-live="alert" class="visually-hidden">
-    <!-- Content will be updated dynamically when holds are available -->
-</div>
+<div id="holdAnnouncement" aria-live="alert" class="visually-hidden"></div>
 <div class="controls holds" role="group" aria-label="Hold Controls">
+    <div id="holdLiveRegion" aria-live="polite" class="visually-hidden"></div>
     <button id="hold1" disabled aria-pressed="false" aria-label="Hold reel 1">Hold</button>
     <button id="hold2" disabled aria-pressed="false" aria-label="Hold reel 2">Hold</button>
     <button id="hold3" disabled aria-pressed="false" aria-label="Hold reel 3">Hold</button>
@@ -41,17 +41,15 @@
 <!-- Main Control Buttons -->
 <div class="button-row">
     <button id="startButton">Start</button>
-    <button aria-hidden="true" id="winSpinButton">Win Spin</button>
-    <button aria-hidden="true" id="resetCreditButton">Reset Credits</button>
+    <button aria-hidden="true" class="visually-hidden" id="winSpinButton">Win Spin</button>
+    <button aria-hidden="true" class="visually-hidden" id="resetCreditButton">Reset Credits</button>
     <button id="soundToggle" aria-pressed="true">Sound: On</button>
-    <!-- Replaced reels button with status area -->
-
-    <button aria-hidden="true" id="accessibilityButton" aria-pressed="false">Accessibility: Off</button>
+    <button aria-hidden="true" class="visually-hidden" id="accessibilityButton" aria-pressed="false">Accessibility: Off</button>
 </div>
 
 <!-- Nudge Buttons -->
-<div aria-live="polite" class="visually-hidden">Nudges are available</div>
-<div aria-hidden="true" class="controls nudges" role="group" aria-label="Nudge Controls">
+<div aria-live="polite" aria-hidden="true" class="visually-hidden">Nudges are available</div>
+<div aria-hidden="true" class="visually-hidden" class="controls nudges" role="group" aria-label="Nudge Controls">
     <button id="nudge1" disabled aria-label="Nudge reel 1">Nudge</button>
     <button id="nudge2" disabled aria-label="Nudge reel 2">Nudge</button>
     <button id="nudge3" disabled aria-label="Nudge reel 3">Nudge</button>
@@ -81,6 +79,7 @@
     const reelStatus = document.getElementById("reelStatus");
     const holdAnnouncement = document.getElementById("holdAnnouncement");
     const gameStatus = document.getElementById("gameStatus");
+    const holdLiveRegion = document.getElementById("holdLiveRegion");
 
     // Image paths and configuration unchanged
     const imagePaths = [
@@ -147,6 +146,7 @@
     }));
     let spinning = false;
     let holdStatus = [false, false, false, false];
+    let lastWinAmount = 0;
 
     // Control button references
     const startButton = document.getElementById("startButton");
@@ -172,16 +172,22 @@
         }
     }
 
-    // New function to update game status
+    // Updated function to include win amount at the start
     function updateGameStatus() {
         const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
         const holdsActive = holdButtons.some(button => !button.disabled);
-        const statusText = [
-            `Reels: ${symbols.join(", ")}`,
-            holdsActive ? "Holds activated" : "",
-            `Credits: £${credits.toFixed(2)}`
-        ].filter(Boolean).join(". ");
-        gameStatus.textContent = statusText;
+        const statusParts = [];
+
+        if (lastWinAmount > 0) {
+            statusParts.push("You won £" + lastWinAmount.toFixed(2));
+        }
+        statusParts.push("Reels: " + symbols.join(", "));
+        if (holdsActive) {
+            statusParts.push("Holds activated");
+        }
+        statusParts.push("Credits: £" + credits.toFixed(2));
+
+        gameStatus.textContent = statusParts.join(". ");
     }
 
     resetCreditButton.addEventListener("click", () => {
@@ -189,19 +195,20 @@
         localStorage.setItem('credits', credits);
         updateCreditDisplay();
         startButton.disabled = false;
+        lastWinAmount = 0;
         updateGameStatus();
     });
 
     soundToggleButton.addEventListener("click", () => {
         soundEnabled = !soundEnabled;
-        soundToggleButton.textContent = `Sound: ${soundEnabled ? "On" : "Off"}`;
+        soundToggleButton.textContent = "Sound: " + (soundEnabled ? "On" : "Off");
         soundToggleButton.setAttribute("aria-pressed", soundEnabled);
         updateGameStatus();
     });
 
     accessibilityButton.addEventListener("click", () => {
         accessibilityMode = !accessibilityMode;
-        accessibilityButton.textContent = `Accessibility: ${accessibilityMode ? "On" : "Off"}`;
+        accessibilityButton.textContent = "Accessibility: " + (accessibilityMode ? "On" : "Off");
         accessibilityButton.setAttribute("aria-pressed", accessibilityMode);
         document.querySelector(".controls.nudges").style.display = accessibilityMode ? "none" : "flex";
         updateGameStatus();
@@ -246,13 +253,11 @@
             if ((symbolMap[symbols[i]] || symbols[i]) === baseSymbol) count++;
             else break;
         }
-        announceResults();
         return getPayout(baseSymbol, count);
     }
 
     function showWinNotice(amount) {
-        const winNotice = document.getElementById("winNotice");
-        winNotice.textContent = `You won £${amount.toFixed(2)}!`;
+        lastWinAmount = amount;
         canvas.classList.add("win-background");
         playWinSound();
         updateGameStatus();
@@ -267,6 +272,7 @@
     function spinReels(forceWin = false) {
         spinning = true;
         winProcessed = false;
+        lastWinAmount = 0;
         canvas.classList.remove("win-background");
         nudgeButtons.forEach(button => button.disabled = true);
         const startTime = Date.now();
@@ -323,7 +329,7 @@
 
     const activateFeature = () => {
         if (Math.random() < 0.5) activateHolds();
-        else activateHolds(); // Changed to holds for testing; revert to activateNudges() if needed
+        else activateHolds();
     };
 
     // Nudge controls
@@ -361,7 +367,6 @@
         let newIndex = (currentIndex - 1 + reelImages) % reelImages;
         reels[reelIndex].position = newIndex * stepSize;
         drawReels();
-        announceResults();
     }
 
     function disableNudges() {
@@ -387,12 +392,25 @@
                 holdStatus[index] = !holdStatus[index];
                 button.setAttribute("aria-pressed", holdStatus[index]);
                 button.classList.toggle("hold-active", holdStatus[index]);
-                announceResults();
-                updateGameStatus(); // Update status after hold toggle
+                const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
+                const number = button.id.match(/\d+/)[0];
+                const symbol = symbols[number - 1];
+                const status = holdStatus[index] ? "Holding" : "Unholding";
+                holdLiveRegion.textContent = status + " reel " + number + ": " + symbol;
+                updateGameStatus();
+            };
+            button.onfocus = () => {
+                if (!button.disabled) {
+                    const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
+                    const number = button.id.match(/\d+/)[0];
+                    const symbol = symbols[number - 1];
+                    holdLiveRegion.textContent = "Current symbol on reel " + number + ": " + symbol + ", press to " + (holdStatus[index] ? "unhold" : "hold");
+                }
             };
         });
-        holdAnnouncement.textContent = "Hold feature activated. You can now hold reels.";
-        updateGameStatus(); // Update status when holds are activated
+        holdAnnouncement.textContent = "Hold feature activated. You can now hold reels. Navigate to hold buttons to select.";
+        holdLiveRegion.textContent = "";
+        updateGameStatus();
     }
 
     // Main controls
@@ -406,7 +424,6 @@
             spinReels();
             clearWinNotice();
             reelStatus.textContent = "Spinning reels...";
-            updateGameStatus();
         } else {
             document.getElementById("winNotice").textContent = "No more credits!";
             updateGameStatus();
@@ -415,7 +432,6 @@
 
     winSpinButton.addEventListener("click", () => {
         if (!spinning) spinReels(true);
-        updateGameStatus();
     });
 
     // Modified resetHoldAndNudgeButtons to clear hold announcement
@@ -431,7 +447,8 @@
             button.classList.remove("flash");
         });
         holdAnnouncement.textContent = "";
-        updateGameStatus(); // Update status when resetting
+        holdLiveRegion.textContent = "";
+        updateGameStatus();
     }
 
     function toggleFeatures(controlType) {
@@ -439,40 +456,21 @@
         document.querySelector(".controls.nudges").style.display = controlType === "nudges" ? "flex" : "none";
     }
 
+    // Simplified hold button navigation
     document.querySelectorAll(".controls.holds button").forEach((button, index) => {
-        const liveRegion = document.createElement("div");
-        liveRegion.setAttribute("aria-live", "alert");
-        liveRegion.className = "visually-hidden";
-        button.parentNode.appendChild(liveRegion);
-
-        button.addEventListener("focus", () => {
-            const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
-            const item = button.id;
-            const number = item.match(/\d+/)[0];
-            const symbol = symbols[number - 1];
-            liveRegion.textContent = `Current symbol on reel ${number}: ${symbol}`;
-        });
-
-        button.addEventListener("click", () => {
-            const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
-            const item = button.id;
-            const number = item.match(/\d+/)[0];
-            const symbol = symbols[number - 1];
-            const status = button.classList.toggle("hold-active") ? "Holding" : "Unholding";
-            liveRegion.textContent = `${status} reel ${number}: ${symbol}`;
-        });
+        // Event listeners moved to activateHolds to ensure they’re only active when holds are enabled
     });
 
     // Accessibility announcements
     function announceResults() {
         const symbols = getWinningSymbols().map(imgPath => symbolMap[imgPath] || "Unknown");
-        reelStatus.textContent = `Reels show: ${symbols.join(", ")}`;
+        reelStatus.textContent = "Reels show: " + symbols.join(", ");
     }
 
     // Initial setup
     setTimeout(() => {
         drawReels();
-        updateGameStatus(); // Initial status update
+        updateGameStatus();
     }, 200);
 </script>
 </body>
